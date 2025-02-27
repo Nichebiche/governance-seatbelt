@@ -68,7 +68,7 @@ jobs:
 
       - name: Upload artifacts
         if: always()
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: Uniswap
           path: reports/Uniswap/0x408ED6354d4973f66138C91495F2f2FCbd8724C3/
