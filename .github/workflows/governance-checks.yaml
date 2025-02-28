@@ -51,7 +51,13 @@ jobs:
           solc-select use 0.8.20
 
       - name: Run checks
-        run: bun run start
+        uses: nick-fields/retry@v2
+        with:
+          timeout_minutes: 60
+          max_attempts: 5
+          retry_wait_seconds: 300
+          command: bun run start
+          on_retry_command: echo "Retrying due to possible rate limiting..."
         env:
           ETHERSCAN_API_KEY: ${{ secrets.ETHERSCAN_API_KEY }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
