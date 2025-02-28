@@ -14,16 +14,15 @@ jobs:
     name: Check Uniswap Proposals
     runs-on: ubuntu-latest
     environment: ci
-    container:
-      image: mcr.microsoft.com/playwright:v1.50.0-jammy
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Install required dependencies
-        run: |
-          apt-get update
-          apt-get install -y unzip python3 python3-pip python3-dev build-essential libssl-dev git curl wget
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
 
       - name: Set up Bun
         uses: oven-sh/setup-bun@v1
@@ -33,19 +32,9 @@ jobs:
       - name: Install dependencies
         run: bun install
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.10'
-
-      - name: Install solc-select
-        run: pip3 install solc-select
-
-      - name: Install Slither
-        run: pip3 install slither-analyzer
-
-      - name: Install multiple solc versions
+      - name: Install Slither dependencies
         run: |
+          pip3 install solc-select slither-analyzer
           solc-select install 0.8.19
           solc-select install 0.8.20
           solc-select use 0.8.20
