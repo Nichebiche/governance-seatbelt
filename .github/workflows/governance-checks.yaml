@@ -20,6 +20,9 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Install required dependencies
+        run: apt-get update && apt-get install -y unzip
+
       - name: Set up Bun
         uses: oven-sh/setup-bun@v1
         with:
