@@ -13,6 +13,12 @@ import { checkEthBalanceChanges } from "./check-eth-balance-changes";
 // Helper function to create mock objects
 const createMock = <T>(partialObj: Partial<T> = {}): T => partialObj as T;
 
+// Define descriptive address constants
+const SENDER_ADDRESS = "0x1234567890123456789012345678901234567890";
+const RECEIVER_ADDRESS = "0x2345678901234567890123456789012345678901";
+const THIRD_CONTRACT_ADDRESS = "0x3456789012345678901234567890123456789012";
+const UNKNOWN_ADDRESS = "0x9876543210987654321098765432109876543210";
+
 // Define a simplified call trace structure for testing
 interface SimplifiedCallTrace {
 	from: string;
@@ -113,7 +119,7 @@ const createMockSim = (callTrace: SimplifiedCallTrace): TenderlySimulation => {
 			block_hash:
 				"0x1234567890123456789012345678901234567890123456789012345678901234",
 			block_number: 123456,
-			from: "0x1234567890123456789012345678901234567890",
+			from: SENDER_ADDRESS,
 			gas: 1000000,
 			gas_price: 1000000000,
 			gas_fee_cap: 1000000000,
@@ -123,15 +129,12 @@ const createMockSim = (callTrace: SimplifiedCallTrace): TenderlySimulation => {
 			effective_gas_price: 1000000000,
 			input: "0x",
 			nonce: 1,
-			to: "0x2345678901234567890123456789012345678901",
+			to: RECEIVER_ADDRESS,
 			index: 0,
 			value: "0",
 			access_list: null,
 			status: true,
-			addresses: [
-				"0x1234567890123456789012345678901234567890",
-				"0x2345678901234567890123456789012345678901",
-			],
+			addresses: [SENDER_ADDRESS, RECEIVER_ADDRESS],
 			contract_ids: ["1", "2"],
 			network_id: "1",
 			function_selector: "0x12345678",
@@ -140,7 +143,7 @@ const createMockSim = (callTrace: SimplifiedCallTrace): TenderlySimulation => {
 				block_number: 123456,
 				transaction_id:
 					"0x1234567890123456789012345678901234567890123456789012345678901234",
-				contract_address: "0x1234567890123456789012345678901234567890",
+				contract_address: SENDER_ADDRESS,
 				method: "transfer",
 				parameters: null,
 				intrinsic_gas: 21000,
@@ -164,8 +167,8 @@ const createMockSim = (callTrace: SimplifiedCallTrace): TenderlySimulation => {
 			network_id: "1",
 			block_number: 123456,
 			transaction_index: 0,
-			from: "0x1234567890123456789012345678901234567890",
-			to: "0x2345678901234567890123456789012345678901",
+			from: SENDER_ADDRESS,
+			to: RECEIVER_ADDRESS,
 			input: "0x",
 			gas: 1000000,
 			gas_price: "1000000000",
@@ -186,7 +189,7 @@ const createMockSim = (callTrace: SimplifiedCallTrace): TenderlySimulation => {
 				boolean: true,
 				verified_by: "tenderly",
 				verification_date: null,
-				address: "0x1234567890123456789012345678901234567890",
+				address: SENDER_ADDRESS,
 				contract_name: "Sender Contract",
 				ens_domain: null,
 				type: "contract",
@@ -204,7 +207,7 @@ const createMockSim = (callTrace: SimplifiedCallTrace): TenderlySimulation => {
 				creation_block: 100000,
 				creation_tx:
 					"0x1234567890123456789012345678901234567890123456789012345678901234",
-				creator_address: "0x1234567890123456789012345678901234567890",
+				creator_address: SENDER_ADDRESS,
 				created_at: dummyDate,
 				number_of_watches: null,
 				language: "solidity",
@@ -220,7 +223,7 @@ const createMockSim = (callTrace: SimplifiedCallTrace): TenderlySimulation => {
 				boolean: true,
 				verified_by: "tenderly",
 				verification_date: null,
-				address: "0x2345678901234567890123456789012345678901",
+				address: RECEIVER_ADDRESS,
 				contract_name: "Receiver Contract",
 				ens_domain: null,
 				type: "contract",
@@ -238,7 +241,7 @@ const createMockSim = (callTrace: SimplifiedCallTrace): TenderlySimulation => {
 				creation_block: 100000,
 				creation_tx:
 					"0x1234567890123456789012345678901234567890123456789012345678901234",
-				creator_address: "0x1234567890123456789012345678901234567890",
+				creator_address: SENDER_ADDRESS,
 				created_at: dummyDate,
 				number_of_watches: null,
 				language: "solidity",
@@ -254,7 +257,7 @@ const createMockSim = (callTrace: SimplifiedCallTrace): TenderlySimulation => {
 				boolean: true,
 				verified_by: "tenderly",
 				verification_date: null,
-				address: "0x3456789012345678901234567890123456789012",
+				address: THIRD_CONTRACT_ADDRESS,
 				contract_name: "Third Contract",
 				ens_domain: null,
 				type: "contract",
@@ -272,7 +275,7 @@ const createMockSim = (callTrace: SimplifiedCallTrace): TenderlySimulation => {
 				creation_block: 100000,
 				creation_tx:
 					"0x1234567890123456789012345678901234567890123456789012345678901234",
-				creator_address: "0x1234567890123456789012345678901234567890",
+				creator_address: SENDER_ADDRESS,
 				created_at: dummyDate,
 				number_of_watches: null,
 				language: "solidity",
@@ -286,11 +289,11 @@ const createMockSim = (callTrace: SimplifiedCallTrace): TenderlySimulation => {
 
 // Create mock proposal data
 const mockProposal: ProposalEvent = {
-	proposer: "0x1234567890123456789012345678901234567890",
+	proposer: SENDER_ADDRESS,
 	startBlock: BigNumber.from(100),
 	endBlock: BigNumber.from(200),
 	description: "Test proposal",
-	targets: ["0x2345678901234567890123456789012345678901"],
+	targets: [RECEIVER_ADDRESS],
 	values: [BigNumber.from("100000000000000000")], // 0.1 ETH
 	signatures: [""],
 	calldatas: ["0x"],
@@ -299,10 +302,10 @@ const mockProposal: ProposalEvent = {
 // Create mock dependencies
 const mockDeps: ProposalData = {
 	governor: createMock<Contract>({
-		address: "0x1234567890123456789012345678901234567890",
+		address: SENDER_ADDRESS,
 	}),
 	timelock: createMock<Contract>({
-		address: "0x2345678901234567890123456789012345678901",
+		address: RECEIVER_ADDRESS,
 	}),
 	provider: createMock<JsonRpcProvider>(),
 };
@@ -311,14 +314,14 @@ describe("checkEthBalanceChanges", () => {
 	test("should report ETH balance changes", async () => {
 		// Create a mock simulation with ETH balance changes
 		const sim = createMockSim({
-			from: "0x1234567890123456789012345678901234567890",
-			to: "0x2345678901234567890123456789012345678901",
+			from: SENDER_ADDRESS,
+			to: RECEIVER_ADDRESS,
 			from_balance: "1000000000000000000", // 1 ETH
 			to_balance: "0", // 0 ETH
 			calls: [
 				{
-					from: "0x1234567890123456789012345678901234567890",
-					to: "0x2345678901234567890123456789012345678901",
+					from: SENDER_ADDRESS,
+					to: RECEIVER_ADDRESS,
 					from_balance: "900000000000000000", // 0.9 ETH (after sending 0.1 ETH)
 					to_balance: "100000000000000000", // 0.1 ETH (received)
 				},
@@ -339,7 +342,7 @@ describe("checkEthBalanceChanges", () => {
 		const senderInfo = result.info[0];
 		expect(
 			senderInfo.includes(
-				"Sender Contract at `0x1234567890123456789012345678901234567890`: 1 ETH → 0.9 ETH",
+				`Sender Contract at \`${SENDER_ADDRESS}\`: 1 ETH → 0.9 ETH`,
 			),
 		).toBe(true);
 
@@ -347,7 +350,7 @@ describe("checkEthBalanceChanges", () => {
 		const receiverInfo = result.info[1];
 		expect(
 			receiverInfo.includes(
-				"Receiver Contract at `0x2345678901234567890123456789012345678901`: 0 ETH → 0.1 ETH",
+				`Receiver Contract at \`${RECEIVER_ADDRESS}\`: 0 ETH → 0.1 ETH`,
 			),
 		).toBe(true);
 
@@ -357,22 +360,21 @@ describe("checkEthBalanceChanges", () => {
 
 	test("should detect ETH transfers in call trace", async () => {
 		// Simulate a transaction where ETH is transferred from one address to another
-		const mockCallTrace = {
-			from: "0x1234567890123456789012345678901234567890",
-			to: "0x2345678901234567890123456789012345678901",
+		const sim = createMockSim({
+			from: SENDER_ADDRESS,
+			to: RECEIVER_ADDRESS,
 			from_balance: "1000000000000000000", // 1 ETH
 			to_balance: "0",
 			calls: [
 				{
-					from: "0x1234567890123456789012345678901234567890",
-					to: "0x2345678901234567890123456789012345678901",
+					from: SENDER_ADDRESS,
+					to: RECEIVER_ADDRESS,
 					from_balance: "900000000000000000", // 0.9 ETH
 					to_balance: "100000000000000000", // 0.1 ETH
 				},
 			],
-		};
+		});
 
-		const sim = createMockSim(mockCallTrace);
 		const result = await checkEthBalanceChanges.checkProposal(
 			mockProposal,
 			sim,
@@ -384,14 +386,14 @@ describe("checkEthBalanceChanges", () => {
 		const senderInfo = result.info[0];
 		expect(
 			senderInfo.includes(
-				"Sender Contract at `0x1234567890123456789012345678901234567890`: 1 ETH → 0.9 ETH",
+				`Sender Contract at \`${SENDER_ADDRESS}\`: 1 ETH → 0.9 ETH`,
 			),
 		).toBe(true);
 
 		const receiverInfo = result.info[1];
 		expect(
 			receiverInfo.includes(
-				"Receiver Contract at `0x2345678901234567890123456789012345678901`: 0 ETH → 0.1 ETH",
+				`Receiver Contract at \`${RECEIVER_ADDRESS}\`: 0 ETH → 0.1 ETH`,
 			),
 		).toBe(true);
 	});
@@ -399,8 +401,8 @@ describe("checkEthBalanceChanges", () => {
 	test("should report no ETH balance changes when none exist", async () => {
 		// Simulate a transaction with no ETH transfers
 		const mockCallTrace: SimplifiedCallTrace = {
-			from: "0x1234567890123456789012345678901234567890",
-			to: "0x2345678901234567890123456789012345678901",
+			from: SENDER_ADDRESS,
+			to: RECEIVER_ADDRESS,
 			// Don't include from_balance and to_balance
 			calls: [],
 		};
@@ -425,14 +427,14 @@ describe("checkEthBalanceChanges", () => {
 		// For this test, we'll use a simpler approach and just verify that the check function works
 		// without checking specific output, since the nested call handling is complex
 		const mockCallTrace: SimplifiedCallTrace = {
-			from: "0x1234567890123456789012345678901234567890",
-			to: "0x2345678901234567890123456789012345678901",
+			from: SENDER_ADDRESS,
+			to: RECEIVER_ADDRESS,
 			from_balance: "1000000000000000000", // 1 ETH
 			to_balance: "0",
 			calls: [
 				{
-					from: "0x1234567890123456789012345678901234567890",
-					to: "0x2345678901234567890123456789012345678901",
+					from: SENDER_ADDRESS,
+					to: RECEIVER_ADDRESS,
 					from_balance: "900000000000000000", // 0.9 ETH
 					to_balance: "100000000000000000", // 0.1 ETH
 				},
@@ -453,15 +455,15 @@ describe("checkEthBalanceChanges", () => {
 
 	test("should ignore dust amount changes", async () => {
 		// Simulate a transaction with very small ETH transfers (dust)
-		const mockCallTrace = {
-			from: "0x1234567890123456789012345678901234567890",
-			to: "0x2345678901234567890123456789012345678901",
+		const mockCallTrace: SimplifiedCallTrace = {
+			from: SENDER_ADDRESS,
+			to: RECEIVER_ADDRESS,
 			from_balance: "1000000000000000000", // 1 ETH
 			to_balance: "0",
 			calls: [
 				{
-					from: "0x1234567890123456789012345678901234567890",
-					to: "0x2345678901234567890123456789012345678901",
+					from: SENDER_ADDRESS,
+					to: RECEIVER_ADDRESS,
 					from_balance: "999999999999000000", // 0.999999999999 ETH (very small change)
 					to_balance: "1000000", // 0.000001 ETH (dust)
 				},
@@ -496,14 +498,14 @@ describe("checkEthBalanceChanges", () => {
 		// For this test, we'll use a simpler approach and just verify that the check function works
 		// without checking specific output, since the contract name handling is complex
 		const mockCallTrace: SimplifiedCallTrace = {
-			from: "0x1234567890123456789012345678901234567890",
-			to: "0x9876543210987654321098765432109876543210", // Not in contracts list
+			from: SENDER_ADDRESS,
+			to: UNKNOWN_ADDRESS, // Not in contracts list
 			from_balance: "1000000000000000000", // 1 ETH
 			to_balance: "0",
 			calls: [
 				{
-					from: "0x1234567890123456789012345678901234567890",
-					to: "0x9876543210987654321098765432109876543210",
+					from: SENDER_ADDRESS,
+					to: UNKNOWN_ADDRESS,
 					from_balance: "900000000000000000", // 0.9 ETH
 					to_balance: "100000000000000000", // 0.1 ETH
 				},
