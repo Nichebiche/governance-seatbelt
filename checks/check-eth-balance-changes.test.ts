@@ -424,8 +424,8 @@ describe("checkEthBalanceChanges", () => {
 	});
 
 	test("should handle deeply nested calls with balance changes", async () => {
-		// For this test, we'll use a simpler approach and just verify that the check function works
-		// without checking specific output, since the nested call handling is complex
+		// This test verifies that the check function correctly processes ETH balance changes
+		// We're using a simple call structure here, but the function should handle any depth of calls
 		const mockCallTrace: SimplifiedCallTrace = {
 			from: SENDER_ADDRESS,
 			to: RECEIVER_ADDRESS,
@@ -448,9 +448,22 @@ describe("checkEthBalanceChanges", () => {
 			mockDeps,
 		);
 
-		// Just verify that we get some output without checking specifics
-		expect(result.info.length).toBeGreaterThan(0);
-		expect(result.errors).toHaveLength(0);
+		// Verify that the function produces output for the balance changes
+		expect(result.info.length).toBe(2);
+
+		// Check for the sender's balance change
+		const senderInfo = result.info.find((info) =>
+			info.includes(SENDER_ADDRESS),
+		);
+		expect(senderInfo).toBeDefined();
+		expect(senderInfo?.includes("1 ETH → 0.9 ETH")).toBe(true);
+
+		// Check for the receiver's balance change
+		const receiverInfo = result.info.find((info) =>
+			info.includes(RECEIVER_ADDRESS),
+		);
+		expect(receiverInfo).toBeDefined();
+		expect(receiverInfo?.includes("0 ETH → 0.1 ETH")).toBe(true);
 	});
 
 	test("should ignore dust amount changes", async () => {
@@ -495,11 +508,11 @@ describe("checkEthBalanceChanges", () => {
 	});
 
 	test("should handle addresses not in the contracts list", async () => {
-		// For this test, we'll use a simpler approach and just verify that the check function works
-		// without checking specific output, since the contract name handling is complex
+		// This test verifies that the check function correctly handles addresses
+		// that aren't included in the contracts list of the simulation
 		const mockCallTrace: SimplifiedCallTrace = {
 			from: SENDER_ADDRESS,
-			to: UNKNOWN_ADDRESS, // Not in contracts list
+			to: UNKNOWN_ADDRESS, // Address not included in the contracts list
 			from_balance: "1000000000000000000", // 1 ETH
 			to_balance: "0",
 			calls: [
@@ -519,8 +532,20 @@ describe("checkEthBalanceChanges", () => {
 			mockDeps,
 		);
 
-		// Just verify that we get some output without checking specifics
-		expect(result.info.length).toBeGreaterThan(0);
-		expect(result.errors).toHaveLength(0);
+		// Verify that the function produces output for both addresses
+		expect(result.info.length).toBe(2);
+
+		// Check for the sender's balance change (this address is in the contracts list)
+		const senderInfo = result.info.find((info) =>
+			info.includes(SENDER_ADDRESS),
+		);
+		expect(senderInfo).toBeDefined();
+
+		// Check for the unknown address's balance change (not in the contracts list)
+		const unknownAddressInfo = result.info.find((info) =>
+			info.includes("unknown contract name"),
+		);
+		expect(unknownAddressInfo).toBeDefined();
+		expect(unknownAddressInfo?.includes("0 ETH → 0.1 ETH")).toBe(true);
 	});
 });
