@@ -79,9 +79,10 @@ describe("checkEthBalanceChanges", () => {
 
 		// Check that the first item contains the expected text (ignoring the exact decimal value)
 		const senderInfo = result.info[0];
+
 		expect(
 			senderInfo.includes(
-				`Sender Contract at \`${SENDER_ADDRESS}\`: 1 ETH → 0.9 ETH`,
+				`Sender Contract at \`${SENDER_ADDRESS}\` (${SENDER_ADDRESS}): 1 ETH → 0.9 ETH`,
 			),
 		).toBe(true);
 
@@ -89,7 +90,7 @@ describe("checkEthBalanceChanges", () => {
 		const receiverInfo = result.info[1];
 		expect(
 			receiverInfo.includes(
-				`Receiver Contract at \`${RECEIVER_ADDRESS}\`: 0 ETH → 0.1 ETH`,
+				`Receiver Contract at \`${RECEIVER_ADDRESS}\` (${RECEIVER_ADDRESS}): 0 ETH → 0.1 ETH`,
 			),
 		).toBe(true);
 

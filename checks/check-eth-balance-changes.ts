@@ -1,14 +1,24 @@
 import { formatEther } from "viem";
 import { getContractName } from "../utils/clients/tenderly";
-import { bullet } from "../presentation/report";
 import type { ProposalCheck, CallTrace } from "../types";
+
+// Define a type that captures the common structure we need for processing calls
+interface CallWithBalances {
+	from?: string;
+	to?: string;
+	from_balance?: string | null;
+	to_balance?: string | null;
+	// Use an array of objects with the same structure to avoid complex nested type issues
+	// This is a recursive type definition
+	calls?: Array<CallWithBalances>;
+}
 
 /**
  * Reports all ETH balance changes from the proposal
  */
 export const checkEthBalanceChanges: ProposalCheck = {
 	name: "Reports all ETH balance changes from the proposal",
-	async checkProposal(proposal, sim, deps) {
+	async checkProposal(_, sim) {
 		const info: string[] = [];
 		const warnings: string[] = [];
 
@@ -40,13 +50,13 @@ export const checkEthBalanceChanges: ProposalCheck = {
 			const afterEth = formatEther(BigInt(after));
 			const diff = Number(afterEth) - Number(beforeEth);
 
-			// Only show significant changes (avoid dust amounts)
-			if (Math.abs(diff) > 0.000001) {
-				const change = diff > 0 ? `+${diff}` : `${diff}`;
-				info.push(
-					bullet(`${name}: ${beforeEth} ETH → ${afterEth} ETH (${change} ETH)`),
-				);
-			}
+			// Skip very small changes (likely due to gas costs)
+			if (Math.abs(diff) < 0.0001) continue;
+
+			const diffStr = diff > 0 ? `+${diff}` : `${diff}`;
+			info.push(
+				`${name} (${address}): ${beforeEth} ETH → ${afterEth} ETH (${diffStr} ETH)`,
+			);
 		}
 
 		return { info, warnings, errors: [] };
@@ -59,76 +69,66 @@ function processCallTrace(
 	balanceChanges: Record<string, { before: string; after: string }>,
 ) {
 	// Process the main call
-	if (callTrace.from && callTrace.from_balance) {
-		const from = callTrace.from.toLowerCase();
-		balanceChanges[from] = balanceChanges[from] || {
-			before: callTrace.from_balance,
-			after: callTrace.from_balance,
-		};
-		// Always update the 'after' balance with the latest seen value
-		balanceChanges[from].after = callTrace.from_balance;
-	}
-
-	if (callTrace.to && callTrace.to_balance) {
-		const to = callTrace.to.toLowerCase();
-		balanceChanges[to] = balanceChanges[to] || {
-			before: callTrace.to_balance,
-			after: callTrace.to_balance,
-		};
-		// Always update the 'after' balance with the latest seen value
-		balanceChanges[to].after = callTrace.to_balance;
-	}
+	// Same type casting needed to work with the simplified interface
+	processBalanceChanges(callTrace as CallWithBalances, balanceChanges);
 
 	// Process nested calls recursively
 	if (callTrace.calls && callTrace.calls.length > 0) {
-		processNestedCalls(callTrace.calls, balanceChanges);
+		/**
+		 * Type casting explanation:
+		 *
+		 * The Tenderly types use different interfaces at each nesting level
+		 * (CallTraceCall → PurpleCall → FluffyCall → TentacledCall) but with similar structures.
+		 *
+		 * We use `as CallWithBalances[]` to simplify working with this complex hierarchy.
+		 * Our interface focuses only on the properties we need, with a consistent recursive structure.
+		 */
+		processNestedCalls(callTrace.calls as CallWithBalances[], balanceChanges);
+	}
+}
+
+// Helper function to process balance changes for a single call
+function processBalanceChanges(
+	call: CallWithBalances,
+	balanceChanges: Record<string, { before: string; after: string }>,
+) {
+	if (call.from && call.from_balance) {
+		const from = call.from.toLowerCase();
+		if (!balanceChanges[from]) {
+			balanceChanges[from] = {
+				before: call.from_balance,
+				after: call.from_balance,
+			};
+		} else {
+			balanceChanges[from].after = call.from_balance;
+		}
+	}
+	if (call.to && call.to_balance) {
+		const to = call.to.toLowerCase();
+		if (!balanceChanges[to]) {
+			balanceChanges[to] = {
+				before: call.to_balance,
+				after: call.to_balance,
+			};
+		} else {
+			balanceChanges[to].after = call.to_balance;
+		}
 	}
 }
 
 // Helper function to process nested calls
 function processNestedCalls(
-	calls: unknown[],
+	calls: CallWithBalances[],
 	balanceChanges: Record<string, { before: string; after: string }>,
 ) {
 	for (const call of calls) {
-		// We need to use type assertion since we're using unknown type
-		const typedCall = call as {
-			from?: string;
-			to?: string;
-			from_balance?: string;
-			to_balance?: string;
-			calls?: unknown[];
-		};
+		// Process this call's balance changes
+		processBalanceChanges(call, balanceChanges);
 
-		if (typedCall.from && typedCall.from_balance) {
-			const from = typedCall.from.toLowerCase();
-			if (balanceChanges[from]) {
-				// Update the 'after' balance with the latest value
-				balanceChanges[from].after = typedCall.from_balance;
-			} else {
-				balanceChanges[from] = {
-					before: typedCall.from_balance,
-					after: typedCall.from_balance,
-				};
-			}
-		}
-
-		if (typedCall.to && typedCall.to_balance) {
-			const to = typedCall.to.toLowerCase();
-			if (balanceChanges[to]) {
-				// Update the 'after' balance with the latest value
-				balanceChanges[to].after = typedCall.to_balance;
-			} else {
-				balanceChanges[to] = {
-					before: typedCall.to_balance,
-					after: typedCall.to_balance,
-				};
-			}
-		}
-
-		// Process further nested calls recursively
-		if (typedCall.calls && typedCall.calls.length > 0) {
-			processNestedCalls(typedCall.calls, balanceChanges);
+		// Process nested calls recursively
+		if (call.calls && call.calls.length > 0) {
+			// Same type casting needed for nested call levels
+			processNestedCalls(call.calls as CallWithBalances[], balanceChanges);
 		}
 	}
 }
