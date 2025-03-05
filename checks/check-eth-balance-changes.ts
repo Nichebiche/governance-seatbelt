@@ -16,6 +16,8 @@ export const checkEthBalanceChanges: ProposalCheck = {
 			return { info: ["No ETH transfers detected"], warnings, errors };
 		}
 
+		console.log(sim.transaction.transaction_info.balance_changes);
+
 		// Filter for ETH transfers
 		const ethTransfers = sim.transaction.transaction_info.asset_changes.filter(
 			(change) => change.token_info.type === "Native",
@@ -34,58 +36,157 @@ export const checkEthBalanceChanges: ProposalCheck = {
 		const timelockAddress = sim.contracts
 			.find((c) => c.contract_name.toLowerCase().includes("timelock"))
 			?.address.toLowerCase();
+		const proposalTargets = proposal.targets.map((t) => t.toLowerCase());
 
-		// Find target addresses from the proposal
-		const targetAddresses = proposal.targets.map((t) => t.toLowerCase());
+		// Helper function to find a contract by address
+		const findContractByAddress = (address: string) => {
+			return sim.contracts.find(
+				(c) => getAddress(c.address).toLowerCase() === address.toLowerCase(),
+			);
+		};
 
-		// Process each ETH transfer
+		// Process each ETH transfer for descriptive messages
 		for (const transfer of ethTransfers) {
-			const { from, to, amount: amountFormatted } = transfer;
-			const fromAddress = getAddress(from);
-			const toAddress = getAddress(to);
+			const from = getAddress(transfer.from);
+			const to = getAddress(transfer.to);
+			const fromLower = from.toLowerCase();
+			const toLower = to.toLowerCase();
 
-			// Get contract names if available
-			const fromContract = sim.contracts.find(
-				(c) => getAddress(c.address) === fromAddress,
-			);
-			const toContract = sim.contracts.find(
-				(c) => getAddress(c.address) === toAddress,
-			);
+			// Find contracts if they exist
+			const fromContract = findContractByAddress(from);
+			const toContract = findContractByAddress(to);
 
-			const fromName = getContractName(fromContract);
-			const toName = getContractName(toContract);
-
-			// Determine if this is a significant transfer
-			const isFromGovernor = fromAddress === governorAddress;
-			const isFromTimelock = timelockAddress && fromAddress === timelockAddress;
-			const isToTarget = targetAddresses.includes(toAddress);
-			const isToTimelock = timelockAddress && toAddress === timelockAddress;
+			// Format the from/to descriptions more clearly with Etherscan links
+			const fromName = fromContract
+				? `[${getContractName(fromContract).split(" at ")[0]}](https://etherscan.io/address/${from})`
+				: `[EOA (${from})](https://etherscan.io/address/${from})`;
+			const toName = toContract
+				? `[${getContractName(toContract).split(" at ")[0]}](https://etherscan.io/address/${to})`
+				: `[EOA (${to})](https://etherscan.io/address/${to})`;
 
 			// Create appropriate message based on the transfer context
 			let message = "";
 
-			if (isFromTimelock && isToTarget) {
-				message = `${toName} (${toAddress}): Received ${amountFormatted} ETH from Timelock as part of the proposal`;
+			if (fromLower === timelockAddress && proposalTargets.includes(toLower)) {
+				message = `• ${fromName} sent ${transfer.amount} ETH to ${toName} as part of the proposal execution`;
 				significantChanges.push(message);
-			} else if (isFromGovernor && isToTimelock) {
-				message = `${fromName} (${fromAddress}): Sent ${amountFormatted} ETH to Timelock for proposal execution`;
+			} else if (fromLower === governorAddress && toLower === timelockAddress) {
+				message = `• ${fromName} sent ${transfer.amount} ETH to ${toName} for proposal execution`;
 				significantChanges.push(message);
-			} else if (isToTarget) {
-				message = `${toName} (${toAddress}): Received ${amountFormatted} ETH as part of the proposal`;
+			} else if (proposalTargets.includes(toLower)) {
+				message = `• ${toName} received ${transfer.amount} ETH as part of the proposal`;
 				significantChanges.push(message);
-			} else if (Number(amountFormatted) >= 0.01) {
+			} else if (Number.parseFloat(transfer.amount) >= 0.01) {
 				// For other significant transfers (>= 0.01 ETH)
-				message = `${fromName} (${fromAddress}) sent ${amountFormatted} ETH to ${toName} (${toAddress})`;
+				message = `• ${fromName} sent ${transfer.amount} ETH to ${toName}`;
 				significantChanges.push(message);
 			} else {
 				// For minor transfers
-				message = `${amountFormatted} ETH transferred from ${fromName} to ${toName}`;
+				message = `• ${transfer.amount} ETH transferred from ${fromName} to ${toName}`;
 				minorChanges.push(message);
 			}
 		}
 
-		info.push(...significantChanges);
-		info.push(...minorChanges);
+		// Add a blank line after the transfer messages
+		if (significantChanges.length > 0) {
+			significantChanges.push("");
+		}
+
+		// Add a table for balance changes if available
+		if (
+			sim.transaction.transaction_info.balance_changes &&
+			sim.transaction.transaction_info.balance_changes.length > 0
+		) {
+			// Create table header
+			significantChanges.push("\n**ETH Balance Changes**");
+			significantChanges.push("| Address | Description | Net ETH Change |");
+			significantChanges.push("| ------- | ----------- | ------------- |");
+
+			// Get addresses involved in ETH transfers to verify balance changes are ETH-related
+			const ethAddresses = new Set<string>();
+			for (const transfer of ethTransfers) {
+				ethAddresses.add(transfer.from.toLowerCase());
+				ethAddresses.add(transfer.to.toLowerCase());
+			}
+
+			// Create a map to calculate net ETH changes for each address
+			const netEthChanges = new Map<string, number>();
+
+			// Calculate net ETH changes from transfers
+			for (const transfer of ethTransfers) {
+				const fromLower = transfer.from.toLowerCase();
+				const toLower = transfer.to.toLowerCase();
+				const amount = Number.parseFloat(transfer.amount);
+
+				// Subtract from sender
+				netEthChanges.set(
+					fromLower,
+					(netEthChanges.get(fromLower) || 0) - amount,
+				);
+
+				// Add to receiver
+				netEthChanges.set(toLower, (netEthChanges.get(toLower) || 0) + amount);
+			}
+
+			// Sort balance changes by address for consistency
+			const sortedBalanceChanges = [
+				...sim.transaction.transaction_info.balance_changes,
+			]
+				.filter((change) => ethAddresses.has(change.address.toLowerCase())) // Only include addresses involved in ETH transfers
+				.sort((a, b) =>
+					a.address.toLowerCase().localeCompare(b.address.toLowerCase()),
+				);
+
+			if (sortedBalanceChanges.length === 0) {
+				significantChanges.push(
+					"| | No relevant ETH balance changes detected | |",
+				);
+			} else {
+				// Add each balance change to the table
+				for (const change of sortedBalanceChanges) {
+					const address = getAddress(change.address);
+					const addressLower = address.toLowerCase();
+					const contract = findContractByAddress(address);
+
+					// Format description based on whether it's a contract or EOA
+					const description = contract
+						? getContractName(contract).split(" at ")[0]
+						: "EOA";
+
+					// Get the net ETH change for this address
+					const netChange = netEthChanges.get(addressLower) || 0;
+
+					// Format the ETH change with sign, fixed precision, and color coding
+					let formattedChange: string;
+					if (netChange > 0) {
+						// Green for positive changes
+						formattedChange = `<span style="color:green">+${netChange.toFixed(4)} ETH</span>`;
+					} else if (netChange < 0) {
+						// Red for negative changes
+						formattedChange = `<span style="color:red">${netChange.toFixed(4)} ETH</span>`;
+					} else {
+						// Gray for zero changes
+						formattedChange = `<span style="color:gray">${netChange.toFixed(4)} ETH</span>`;
+					}
+
+					// Add row to table
+					significantChanges.push(
+						`| \`${address}\` | ${description} | ${formattedChange} |`,
+					);
+				}
+			}
+
+			significantChanges.push("");
+		}
+
+		// Return the collected info
+		if (significantChanges.length > 0) {
+			info.push(...significantChanges);
+		}
+		if (minorChanges.length > 0) {
+			info.push("Minor ETH transfers:");
+			info.push(...minorChanges);
+		}
 
 		return { info, warnings, errors };
 	},
