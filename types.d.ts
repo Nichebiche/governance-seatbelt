@@ -184,6 +184,8 @@ export interface TenderlySimulation {
 	simulation: Simulation;
 	contracts: TenderlyContract[];
 	generated_access_list: GeneratedAccessList[];
+	asset_changes?: AssetChange[] | null;
+	balance_changes?: BalanceChange[] | null;
 }
 
 interface AssetChange {
@@ -411,8 +413,8 @@ interface TransactionInfo {
 	raw_state_diff: null;
 	console_logs: null;
 	created_at: Date;
-	asset_changes: AssetChange[];
-	balance_changes: BalanceChange[];
+	asset_changes: AssetChange[] | null;
+	balance_changes: BalanceChange[] | null;
 }
 
 interface StackTrace {
