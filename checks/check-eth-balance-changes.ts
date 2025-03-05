@@ -1,134 +1,88 @@
-import { formatEther } from "viem";
+import { getAddress } from "viem";
 import { getContractName } from "../utils/clients/tenderly";
-import type { ProposalCheck, CallTrace } from "../types";
-
-// Define a type that captures the common structure we need for processing calls
-interface CallWithBalances {
-	from?: string;
-	to?: string;
-	from_balance?: string | null;
-	to_balance?: string | null;
-	// Use an array of objects with the same structure to avoid complex nested type issues
-	// This is a recursive type definition
-	calls?: Array<CallWithBalances>;
-}
+import type { ProposalCheck } from "../types";
 
 /**
  * Reports all ETH balance changes from the proposal
  */
 export const checkEthBalanceChanges: ProposalCheck = {
 	name: "Reports all ETH balance changes from the proposal",
-	async checkProposal(_, sim) {
+	async checkProposal(proposal, sim) {
 		const info: string[] = [];
 		const warnings: string[] = [];
+		const errors: string[] = [];
 
-		// Track balance changes by address
-		const balanceChanges: Record<string, { before: string; after: string }> =
-			{};
+		// Filter for ETH transfers
+		const ethTransfers = sim.transaction.transaction_info.asset_changes.filter(
+			(change) => change.token_info.type === "Native",
+		);
 
-		// Extract balance changes from call trace
-		if (sim.transaction.transaction_info.call_trace) {
-			processCallTrace(
-				sim.transaction.transaction_info.call_trace,
-				balanceChanges,
-			);
+		if (ethTransfers.length === 0) {
+			return { info: ["No ETH transfers detected"], warnings, errors };
 		}
 
-		// If no balance changes, return early
-		if (Object.keys(balanceChanges).length === 0) {
-			return { info: ["No ETH balance changes"], warnings: [], errors: [] };
+		// Process ETH transfers
+		const significantChanges: string[] = [];
+		const minorChanges: string[] = [];
+
+		// Identify key addresses in the transaction
+		const governorAddress = sim.transaction.to.toLowerCase();
+		const timelockAddress = sim.contracts
+			.find((c) => c.contract_name.toLowerCase().includes("timelock"))
+			?.address.toLowerCase();
+
+		// Find target addresses from the proposal
+		const targetAddresses = proposal.targets.map((t) => t.toLowerCase());
+
+		// Process each ETH transfer
+		for (const transfer of ethTransfers) {
+			const { from, to, amount: amountFormatted } = transfer;
+			const fromAddress = getAddress(from);
+			const toAddress = getAddress(to);
+
+			// Get contract names if available
+			const fromContract = sim.contracts.find(
+				(c) => getAddress(c.address) === fromAddress,
+			);
+			const toContract = sim.contracts.find(
+				(c) => getAddress(c.address) === toAddress,
+			);
+
+			const fromName = getContractName(fromContract);
+			const toName = getContractName(toContract);
+
+			// Determine if this is a significant transfer
+			const isFromGovernor = fromAddress === governorAddress;
+			const isFromTimelock = timelockAddress && fromAddress === timelockAddress;
+			const isToTarget = targetAddresses.includes(toAddress);
+			const isToTimelock = timelockAddress && toAddress === timelockAddress;
+
+			// Create appropriate message based on the transfer context
+			let message = "";
+
+			if (isFromTimelock && isToTarget) {
+				message = `${toName} (${toAddress}): Received ${amountFormatted} ETH from Timelock as part of the proposal`;
+				significantChanges.push(message);
+			} else if (isFromGovernor && isToTimelock) {
+				message = `${fromName} (${fromAddress}): Sent ${amountFormatted} ETH to Timelock for proposal execution`;
+				significantChanges.push(message);
+			} else if (isToTarget) {
+				message = `${toName} (${toAddress}): Received ${amountFormatted} ETH as part of the proposal`;
+				significantChanges.push(message);
+			} else if (Number(amountFormatted) >= 0.01) {
+				// For other significant transfers (>= 0.01 ETH)
+				message = `${fromName} (${fromAddress}) sent ${amountFormatted} ETH to ${toName} (${toAddress})`;
+				significantChanges.push(message);
+			} else {
+				// For minor transfers
+				message = `${amountFormatted} ETH transferred from ${fromName} to ${toName}`;
+				minorChanges.push(message);
+			}
 		}
 
-		// Format and report balance changes
-		for (const [address, { before, after }] of Object.entries(balanceChanges)) {
-			const contract = sim.contracts.find(
-				(c) => c.address.toLowerCase() === address.toLowerCase(),
-			);
-			const name = getContractName(contract);
+		info.push(...significantChanges);
+		info.push(...minorChanges);
 
-			const beforeEth = formatEther(BigInt(before));
-			const afterEth = formatEther(BigInt(after));
-			const diff = Number(afterEth) - Number(beforeEth);
-
-			// Skip very small changes (likely due to gas costs)
-			if (Math.abs(diff) < 0.0001) continue;
-
-			const diffStr = diff > 0 ? `+${diff}` : `${diff}`;
-			info.push(
-				`${name} (${address}): ${beforeEth} ETH → ${afterEth} ETH (${diffStr} ETH)`,
-			);
-		}
-
-		return { info, warnings, errors: [] };
+		return { info, warnings, errors };
 	},
 };
-
-// Helper function to process call trace and extract balance changes
-function processCallTrace(
-	callTrace: CallTrace,
-	balanceChanges: Record<string, { before: string; after: string }>,
-) {
-	// Process the main call
-	// Same type casting needed to work with the simplified interface
-	processBalanceChanges(callTrace as CallWithBalances, balanceChanges);
-
-	// Process nested calls recursively
-	if (callTrace.calls && callTrace.calls.length > 0) {
-		/**
-		 * Type casting explanation:
-		 *
-		 * The Tenderly types use different interfaces at each nesting level
-		 * (CallTraceCall → PurpleCall → FluffyCall → TentacledCall) but with similar structures.
-		 *
-		 * We use `as CallWithBalances[]` to simplify working with this complex hierarchy.
-		 * Our interface focuses only on the properties we need, with a consistent recursive structure.
-		 */
-		processNestedCalls(callTrace.calls as CallWithBalances[], balanceChanges);
-	}
-}
-
-// Helper function to process balance changes for a single call
-function processBalanceChanges(
-	call: CallWithBalances,
-	balanceChanges: Record<string, { before: string; after: string }>,
-) {
-	if (call.from && call.from_balance) {
-		const from = call.from.toLowerCase();
-		if (!balanceChanges[from]) {
-			balanceChanges[from] = {
-				before: call.from_balance,
-				after: call.from_balance,
-			};
-		} else {
-			balanceChanges[from].after = call.from_balance;
-		}
-	}
-	if (call.to && call.to_balance) {
-		const to = call.to.toLowerCase();
-		if (!balanceChanges[to]) {
-			balanceChanges[to] = {
-				before: call.to_balance,
-				after: call.to_balance,
-			};
-		} else {
-			balanceChanges[to].after = call.to_balance;
-		}
-	}
-}
-
-// Helper function to process nested calls
-function processNestedCalls(
-	calls: CallWithBalances[],
-	balanceChanges: Record<string, { before: string; after: string }>,
-) {
-	for (const call of calls) {
-		// Process this call's balance changes
-		processBalanceChanges(call, balanceChanges);
-
-		// Process nested calls recursively
-		if (call.calls && call.calls.length > 0) {
-			// Same type casting needed for nested call levels
-			processNestedCalls(call.calls as CallWithBalances[], balanceChanges);
-		}
-	}
-}
