@@ -12,6 +12,10 @@ export const checkEthBalanceChanges: ProposalCheck = {
 		const warnings: string[] = [];
 		const errors: string[] = [];
 
+		if (!sim.transaction.transaction_info.asset_changes) {
+			return { info: ["No ETH transfers detected"], warnings, errors };
+		}
+
 		// Filter for ETH transfers
 		const ethTransfers = sim.transaction.transaction_info.asset_changes.filter(
 			(change) => change.token_info.type === "Native",
