@@ -5,11 +5,11 @@ import { hexStripZeros } from "@ethersproject/bytes";
 import { HashZero, Zero } from "@ethersproject/constants";
 import { keccak256 } from "@ethersproject/keccak256";
 import { toUtf8Bytes } from "@ethersproject/strings";
-import { parseEther } from "@ethersproject/units";
 import { provider } from "./ethers";
 import mftch, { FETCH_OPT } from "micro-ftch";
-// @ts-ignore
-const fetchUrl = mftch.default;
+
+const fetchUrl = mftch;
+
 import {
 	generateProposalId,
 	getGovernor,
@@ -270,7 +270,7 @@ async function simulateNew(
 		input: governor.interface.encodeFunctionData("execute", executeInputs),
 		gas: BLOCK_GAS_LIMIT,
 		gas_price: "0",
-		value: "0", // TODO Support sending ETH in local simulations like we do below in `simulateProposed`.
+		value: "0", // We'll update this below if ETH transfers are needed
 		save_if_fails: false, // Set to true to save the simulation to your Tenderly dashboard if it fails.
 		save: false, // Set to true to save the simulation to your Tenderly dashboard if it succeeds.
 		generate_access_list: true, // not required, but useful as a sanity check to ensure consistency in the simulation response
@@ -281,7 +281,6 @@ async function simulateNew(
 		},
 		state_objects: {
 			// Since gas price is zero, the sender needs no balance.
-			// TODO Support sending ETH in local simulations like we do below in `simulateProposed`.
 			[from]: { balance: "0" },
 			// Ensure transactions are queued in the timelock
 			[timelock.address]: {
@@ -295,7 +294,30 @@ async function simulateNew(
 			},
 		},
 	};
+
+	// Handle ETH transfers if needed
+	const totalValue = config.values.reduce(
+		(sum, val) => sum.add(BigNumber.from(val)),
+		Zero,
+	);
+
+	if (!totalValue.isZero()) {
+		// If we need to send ETH, update the value and from address balance
+		simulationPayload.value = totalValue.toString();
+
+		// Make sure the from address has enough balance to cover the transfer
+		if (!simulationPayload.state_objects) {
+			simulationPayload.state_objects = {};
+		}
+		simulationPayload.state_objects[from] = {
+			...simulationPayload.state_objects[from],
+			balance: totalValue.toString(),
+		};
+	}
+
+	// Run the simulation
 	const sim = await sendSimulation(simulationPayload);
+
 	writeFileSync("new-response.json", JSON.stringify(sim, null, 2));
 	return { sim, proposal, latestBlock };
 }
@@ -510,26 +532,26 @@ async function simulateProposed(
 		id: BigNumber.from(proposalId), // Make sure we always have an ID field
 	};
 
-	let sim = await sendSimulation(simulationPayload);
+	// Handle ETH transfers if needed
 	const totalValue = values.reduce((sum, cur) => sum.add(cur), Zero);
 
-	// Sim succeeded, or failure was not due to an ETH balance issue, so return the simulation.
-	if (sim.simulation.status || totalValue.eq(Zero))
-		return { sim, proposal: formattedProposal, latestBlock };
+	if (!totalValue.isZero()) {
+		// If we need to send ETH, update the value and from address balance
+		simulationPayload.value = totalValue.toString();
 
-	// Simulation failed, try again by setting value to the difference between total call values and governor ETH balance.
-	const governorEthBalance = await provider.getBalance(governor.address);
-	const newValue = totalValue.sub(governorEthBalance).toString();
-	simulationPayload.value = newValue;
-	simulationPayload.state_objects![from].balance = newValue;
-	sim = await sendSimulation(simulationPayload);
-	if (sim.simulation.status)
-		return { sim, proposal: formattedProposal, latestBlock };
+		// Make sure the from address has enough balance to cover the transfer
+		if (!simulationPayload.state_objects) {
+			simulationPayload.state_objects = {};
+		}
+		simulationPayload.state_objects[from] = {
+			...simulationPayload.state_objects[from],
+			balance: totalValue.toString(),
+		};
+	}
 
-	// Simulation failed, try again by setting value to the total call values.
-	simulationPayload.value = totalValue.toString();
-	simulationPayload.state_objects![from].balance = totalValue.toString();
-	sim = await sendSimulation(simulationPayload);
+	// Run the simulation
+	const sim = await sendSimulation(simulationPayload);
+
 	return { sim, proposal: formattedProposal, latestBlock };
 }
 
@@ -697,6 +719,7 @@ async function sendSimulation(
 		sim.contracts.forEach(
 			(contract) => (contract.address = getAddress(contract.address)),
 		);
+
 		return sim;
 	} catch (err: any) {
 		console.log("err in sendSimulation: ", JSON.stringify(err));
