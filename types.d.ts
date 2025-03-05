@@ -1,6 +1,6 @@
-import { BigNumber, BigNumberish, Block, Contract } from "ethers";
-import { ContractTransaction } from "@ethersproject/contracts";
-import { JsonRpcProvider } from "@ethersproject/providers";
+import type { BigNumber, BigNumberish, Block, Contract } from "ethers";
+import type { JsonRpcProvider } from "@ethersproject/providers";
+import type { Address } from "viem";
 
 // --- Simulation configurations ---
 // TODO Consider refactoring to an enum instead of string.
@@ -382,7 +382,7 @@ interface Transaction {
 	effective_gas_price: number;
 	input: string;
 	nonce: number;
-	to: From;
+	to: Address;
 	index: number;
 	value: string;
 	access_list: null;
