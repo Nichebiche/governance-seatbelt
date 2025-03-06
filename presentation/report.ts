@@ -2,6 +2,7 @@ import fs, { promises as fsp } from 'node:fs';
 import type { Block } from '@ethersproject/abstract-provider';
 import type { BigNumber } from 'ethers';
 import { mdToPdf } from 'md-to-pdf';
+import type { Link, Root } from 'mdast';
 import rehypeSanitize from 'rehype-sanitize';
 import rehypeSlug from 'rehype-slug';
 import rehypeStringify from 'rehype-stringify';
@@ -11,6 +12,7 @@ import remarkRehype from 'remark-rehype';
 import remarkToc from 'remark-toc';
 import { unified } from 'unified';
 import { visit } from 'unist-util-visit';
+import type { Visitor } from 'unist-util-visit';
 import type { AllCheckResults, GovernorType, ProposalEvent } from '../types';
 import { formatProposalId } from '../utils/contracts/governor';
 
@@ -226,23 +228,18 @@ ${Object.keys(checks)
  * @dev This is a remark plugin, see the remark docs for more info on how it works.
  */
 function remarkFixEmojiLinks() {
-  return (tree: any) => {
-    visit(tree, (node) => {
-      if (node.type === 'link') {
-        // @ts-ignore node.url does exist, the typings just aren't correct
-        const url: string = node.url;
-        const isInternalLink = url.startsWith('#');
-        if (isInternalLink && url.endsWith('--passed-with-warnings')) {
-          // @ts-ignore node.url does exist, the typings just aren't correct
+  return (tree: Root) => {
+    visit(tree, 'link', ((node: Link) => {
+      if (node.url) {
+        const isInternalLink = node.url.startsWith('#');
+        if (isInternalLink && node.url.endsWith('--passed-with-warnings')) {
           node.url = node.url.replace('--passed-with-warnings', '-❗❗-passed-with-warnings');
-        } else if (isInternalLink && url.endsWith('--passed')) {
-          // @ts-ignore node.url does exist, the typings just aren't correct
+        } else if (isInternalLink && node.url.endsWith('--passed')) {
           node.url = node.url.replace('--passed', '-✅-passed');
-        } else if (isInternalLink && url.endsWith('--failed')) {
-          // @ts-ignore node.url does exist, the typings just aren't correct
+        } else if (isInternalLink && node.url.endsWith('--failed')) {
           node.url = node.url.replace('--failed', '-❌-failed');
         }
       }
-    });
+    }) as Visitor<Link>);
   };
 }
