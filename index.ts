@@ -2,10 +2,8 @@
  * @notice Entry point for executing a single proposal against a forked mainnet
  */
 
-import dotenv from 'dotenv';
-dotenv.config();
 import type { Contract } from 'ethers';
-import { BigNumber } from 'ethers';
+import type { BigNumber } from 'ethers';
 import { DAO_NAME, GOVERNOR_ADDRESS, SIM_NAME } from './utils/constants';
 import { provider } from './utils/clients/ethers';
 import { simulate } from './utils/clients/tenderly';

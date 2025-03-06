@@ -1,6 +1,3 @@
-import { config } from 'dotenv';
-config();
-
 // Load environment variables.
 export const ETHERSCAN_API_KEY = process.env.ETHERSCAN_API_KEY!;
 export const RPC_URL = process.env.RPC_URL!;
