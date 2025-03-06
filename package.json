@@ -8,11 +8,11 @@
     "start": "bun run index.ts",
     "typecheck": "tsc --noEmit",
     "lint": "bun run typecheck && biome check .",
-    "lint:fix": "bun run typecheck && biome check --apply .",
+    "lint:fix": "bun run typecheck && biome check --write .",
     "format": "biome format .",
     "format:fix": "biome format --write .",
     "check": "bun run typecheck && biome check",
-    "check:fix": "bun run typecheck && biome check --apply",
+    "check:fix": "bun run typecheck && biome check --write",
     "test": "bun test"
   },
   "repository": {
