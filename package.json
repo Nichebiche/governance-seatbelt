@@ -8,7 +8,7 @@
   "description": "Make governance safer",
   "scripts": {
     "compile": "hardhat compile",
-    "start": "tsx index.ts",
+    "start": "bun run index.ts",
     "lint:fix": "prettier --write .",
     "test": "bun test"
   },
