@@ -1,11 +1,11 @@
+import { Interface } from '@ethersproject/abi';
+import { parseUnits } from '@ethersproject/units';
 /**
  * @notice Simulation configuration file for proposal 51.
  */
 import type { SimulationConfigNew } from '../types';
-import { ERC20_ABI } from '../utils/contracts/erc20';
-import { Interface } from '@ethersproject/abi';
-import { parseUnits } from '@ethersproject/units';
 import FranchiserFactoryAbi from '../utils/abis/FranchiserFactoryAbi.json' assert { type: 'json' };
+import { ERC20_ABI } from '../utils/contracts/erc20';
 
 // Target contracts
 const tokenAddress = '0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984'; // UNI token address.

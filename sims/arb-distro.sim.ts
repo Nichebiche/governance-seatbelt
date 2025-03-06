@@ -1,13 +1,13 @@
+import { Interface } from '@ethersproject/abi';
+import { formatEther, parseUnits } from 'ethers/lib/utils';
 /**
  * @notice Sample simulation configuration file for the arb lm distribution proposal.
  */
 import type { SimulationConfigNew } from '../types';
-import { Interface } from '@ethersproject/abi';
+import ArbTokenAbi from '../utils/abis/ArbTokenAbi.json' assert { type: 'json' };
 import ArbitrumDelayedInboxAbi from '../utils/abis/ArbitrumDelayedInboxAbi.json' assert {
   type: 'json',
 };
-import ArbTokenAbi from '../utils/abis/ArbTokenAbi.json' assert { type: 'json' };
-import { formatEther, parseUnits } from 'ethers/lib/utils';
 
 // Get interfaces to facilitate encoding the calls we want to execute.
 const DelayedInboxInterface = new Interface(ArbitrumDelayedInboxAbi);

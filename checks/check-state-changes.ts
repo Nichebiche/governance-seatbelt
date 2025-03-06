@@ -1,7 +1,7 @@
 import { getAddress } from '@ethersproject/address';
-import { getContractName } from '../utils/clients/tenderly';
 import { bullet } from '../presentation/report';
 import type { ProposalCheck, StateDiff } from '../types';
+import { getContractName } from '../utils/clients/tenderly';
 
 /**
  * Reports all state changes from the proposal

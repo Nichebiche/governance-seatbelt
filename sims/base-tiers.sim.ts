@@ -1,14 +1,14 @@
+import { Interface } from '@ethersproject/abi';
+import { formatEther, parseUnits } from 'ethers/lib/utils';
 /**
  * @notice Sample simulation configuration file for the arb lm distribution proposal.
  */
 import type { SimulationConfigNew } from '../types';
-import { Interface } from '@ethersproject/abi';
 import L1BaseCrossChainMessenger from '../utils/abis/L1BaseCrossChainMessenger.json' assert {
   type: 'json',
 };
 import L2CrossChainAccount from '../utils/abis/L2CrossChainAccount.json' assert { type: 'json' };
 import v3FactoryAbi from '../utils/abis/v3FactoryAbi.json' assert { type: 'json' };
-import { formatEther, parseUnits } from 'ethers/lib/utils';
 
 // Get interfaces to facilitate encoding the calls we want to execute.
 const BaseInbox = new Interface(L1BaseCrossChainMessenger);

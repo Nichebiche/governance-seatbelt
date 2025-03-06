@@ -34,15 +34,6 @@
     }
   },
   "files": {
-    "ignore": [
-      "node_modules",
-      "dist",
-      "build",
-      ".git",
-      "reports",
-      "*.json",
-      "*.md",
-      "*.lock"
-    ]
+    "ignore": ["node_modules", "dist", "build", ".git", "reports", "*.json", "*.md", "*.lock"]
   }
 }

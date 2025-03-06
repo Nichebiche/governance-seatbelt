@@ -1,11 +1,11 @@
-import util from 'node:util';
 import { exec as execCallback } from 'node:child_process';
+import util from 'node:util';
 import { getAddress } from '@ethersproject/address';
+import { codeBlock } from '../presentation/report';
+import type { ProposalCheck } from '../types';
 import { getContractName } from '../utils/clients/tenderly';
 import { ETHERSCAN_API_KEY } from '../utils/constants';
-import { codeBlock } from '../presentation/report';
 import { getImplementation } from '../utils/contracts/governor';
-import type { ProposalCheck } from '../types';
 
 // Convert exec method from a callback to a promise.
 const exec = util.promisify(execCallback);

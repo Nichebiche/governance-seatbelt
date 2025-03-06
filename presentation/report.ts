@@ -1,18 +1,18 @@
 import fs, { promises as fsp } from 'node:fs';
 import type { Block } from '@ethersproject/abstract-provider';
 import type { BigNumber } from 'ethers';
+import { mdToPdf } from 'md-to-pdf';
+import rehypeSanitize from 'rehype-sanitize';
+import rehypeSlug from 'rehype-slug';
+import rehypeStringify from 'rehype-stringify';
 import { remark } from 'remark';
-import remarkToc from 'remark-toc';
 import remarkParse from 'remark-parse';
 import remarkRehype from 'remark-rehype';
-import rehypeSanitize from 'rehype-sanitize';
-import rehypeStringify from 'rehype-stringify';
-import rehypeSlug from 'rehype-slug';
-import { visit } from 'unist-util-visit';
+import remarkToc from 'remark-toc';
 import { unified } from 'unified';
-import { mdToPdf } from 'md-to-pdf';
-import { formatProposalId } from '../utils/contracts/governor';
+import { visit } from 'unist-util-visit';
 import type { AllCheckResults, GovernorType, ProposalEvent } from '../types';
+import { formatProposalId } from '../utils/contracts/governor';
 
 // --- Markdown helpers ---
 

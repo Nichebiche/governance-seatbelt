@@ -2,11 +2,11 @@
  * @notice Entry point for executing a single proposal against a forked mainnet
  */
 
+import { getAddress } from '@ethersproject/address';
 import type { Contract } from 'ethers';
 import type { BigNumber } from 'ethers';
-import { DAO_NAME, GOVERNOR_ADDRESS, SIM_NAME } from './utils/constants';
-import { provider } from './utils/clients/ethers';
-import { simulate } from './utils/clients/tenderly';
+import ALL_CHECKS from './checks';
+import { generateAndSaveReports } from './presentation/report';
 import type {
   AllCheckResults,
   GovernorType,
@@ -14,9 +14,9 @@ import type {
   SimulationConfigBase,
   SimulationData,
 } from './types';
-import ALL_CHECKS from './checks';
-import { generateAndSaveReports } from './presentation/report';
-import { PROPOSAL_STATES } from './utils/contracts/governor-bravo';
+import { provider } from './utils/clients/ethers';
+import { simulate } from './utils/clients/tenderly';
+import { DAO_NAME, GOVERNOR_ADDRESS, SIM_NAME } from './utils/constants';
 import {
   formatProposalId,
   getGovernor,
@@ -24,7 +24,7 @@ import {
   getTimelock,
   inferGovernorType,
 } from './utils/contracts/governor';
-import { getAddress } from '@ethersproject/address';
+import { PROPOSAL_STATES } from './utils/contracts/governor-bravo';
 
 /**
  * @notice Simulate governance proposals and run proposal checks against them

@@ -1,11 +1,11 @@
+import { Interface } from '@ethersproject/abi';
+import { labelhash, namehash } from 'viem';
 /**
  * @notice
  This proposal creates a new subdomain on the uniswap.eth ENS name and populates its text records
  with addresses of v2 deployments
  */
 import type { SimulationConfigNew } from '../types';
-import { Interface } from '@ethersproject/abi';
-import { labelhash, namehash } from 'viem';
 import ENSPublicResolverABI from '../utils/ABIs/ENSPublicResolverABI.json' assert { type: 'json' };
 
 const ensRegistryAbi = [

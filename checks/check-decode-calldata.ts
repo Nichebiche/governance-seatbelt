@@ -1,9 +1,9 @@
 import { FunctionFragment, Interface } from '@ethersproject/abi';
 import { getAddress } from '@ethersproject/address';
 import { formatUnits } from '@ethersproject/units';
-import type { ProposalCheck, FluffyCall } from '../types';
-import { ERC20_ABI, fetchTokenMetadata } from '../utils/contracts/erc20';
 import { bullet } from '../presentation/report';
+import type { FluffyCall, ProposalCheck } from '../types';
+import { ERC20_ABI, fetchTokenMetadata } from '../utils/contracts/erc20';
 
 const ierc20 = new Interface(ERC20_ABI);
 
@@ -13,7 +13,7 @@ const ierc20 = new Interface(ERC20_ABI);
 export const checkDecodeCalldata: ProposalCheck = {
   name: 'Decodes target calldata into a human-readable format',
   async checkProposal(proposal, sim, deps) {
-    let warnings: string[] = [];
+    const warnings: string[] = [];
     // Generate the raw calldata for each proposal action
     const calldatas = proposal.signatures.map((sig, i) => {
       return sig

@@ -1,6 +1,6 @@
-import { Zero } from '@ethersproject/constants';
 import { BigNumber } from '@ethersproject/bignumber';
 import type { BigNumber as BigNumberType } from '@ethersproject/bignumber';
+import { Zero } from '@ethersproject/constants';
 import { formatEther } from '@ethersproject/units';
 import type { ProposalCheck } from '../types';
 

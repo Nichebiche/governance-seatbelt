@@ -1,11 +1,11 @@
+import { Interface } from '@ethersproject/abi';
+import { labelhash, namehash } from 'viem';
 /**
  * @notice Sample simulation configuration file for a proposal that does not exist on-chain.
  * This proposal configures ENS records so the Uniswap DAO Grants Voltz an additional use grant.
  * Be aware this is identical to an already executed proposal: https://app.uniswap.org/#/vote/2/11?chain=mainnet
  */
 import type { SimulationConfigNew } from '../types';
-import { Interface } from '@ethersproject/abi';
-import { labelhash, namehash } from 'viem';
 import ENSPublicResolverABI from '../utils/ABIs/ENSPublicResolverABI.json' assert { type: 'json' };
 
 // Get interfaces to facilitate encoding the calls we want to execute.

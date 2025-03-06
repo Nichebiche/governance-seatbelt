@@ -1,34 +1,18 @@
-import { getAddress } from '@ethersproject/address';
 import { defaultAbiCoder } from '@ethersproject/abi';
+import { getAddress } from '@ethersproject/address';
 import { BigNumber } from '@ethersproject/bignumber';
 import type { BigNumberish } from '@ethersproject/bignumber';
 import { hexStripZeros } from '@ethersproject/bytes';
 import { HashZero, Zero } from '@ethersproject/constants';
 import { keccak256 } from '@ethersproject/keccak256';
 import { toUtf8Bytes } from '@ethersproject/strings';
-import { provider } from './ethers';
 import mftch from 'micro-ftch';
 import type { FETCH_OPT } from 'micro-ftch';
+import { provider } from './ethers';
 
 const fetchUrl = mftch;
 
-import {
-  generateProposalId,
-  getGovernor,
-  getProposal,
-  getProposalId,
-  getTimelock,
-  getVotingToken,
-  hashOperationOz,
-  hashOperationBatchOz,
-} from '../contracts/governor';
-import {
-  BLOCK_GAS_LIMIT,
-  TENDERLY_ACCESS_TOKEN,
-  TENDERLY_BASE_URL,
-  TENDERLY_ENCODE_URL,
-  TENDERLY_SIM_URL,
-} from '../constants';
+import { writeFileSync } from 'node:fs';
 import type {
   ProposalData,
   ProposalEvent,
@@ -43,7 +27,23 @@ import type {
   TenderlyPayload,
   TenderlySimulation,
 } from '../../types';
-import { writeFileSync } from 'node:fs';
+import {
+  BLOCK_GAS_LIMIT,
+  TENDERLY_ACCESS_TOKEN,
+  TENDERLY_BASE_URL,
+  TENDERLY_ENCODE_URL,
+  TENDERLY_SIM_URL,
+} from '../constants';
+import {
+  generateProposalId,
+  getGovernor,
+  getProposal,
+  getProposalId,
+  getTimelock,
+  getVotingToken,
+  hashOperationBatchOz,
+  hashOperationOz,
+} from '../contracts/governor';
 
 const TENDERLY_FETCH_OPTIONS = {
   type: 'json',
@@ -273,7 +273,10 @@ export async function simulateNew(config: SimulationConfigNew): Promise<Simulati
   };
 
   // Handle ETH transfers if needed
-  const totalValue = config.values.reduce((sum, val) => sum.add(BigNumber.from(val)), Zero);
+  const totalValue = config.values.reduce<BigNumber>(
+    (sum, val) => BigNumber.from(sum).add(BigNumber.from(val)),
+    Zero,
+  );
 
   if (!totalValue.isZero()) {
     // If we need to send ETH, update the value and from address balance
@@ -389,9 +392,9 @@ async function simulateProposed(config: SimulationConfigProposed): Promise<Simul
 
   // Generate the state object needed to mark the transactions as queued in the Timelock's storage
   const timelockStorageObj: Record<string, string> = {};
-  txHashes.forEach((hash) => {
+  for (const hash of txHashes) {
     timelockStorageObj[`queuedTransactions[${hash}]`] = 'true';
-  });
+  }
 
   if (governorType === 'oz') {
     const id = hashOperationBatchOz(
@@ -455,7 +458,7 @@ async function simulateProposed(config: SimulationConfigProposed): Promise<Simul
       ? [proposalId.toString()]
       : [targets, values, calldatas, descriptionHash];
 
-  let simulationPayload: TenderlyPayload = {
+  const simulationPayload: TenderlyPayload = {
     network_id: '1',
     // this field represents the block state to simulate against, so we use the latest block number
     block_number: latestBlock.number,

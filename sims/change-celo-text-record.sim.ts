@@ -1,9 +1,9 @@
+import { Interface } from '@ethersproject/abi';
+import { namehash } from 'viem';
 /**
  * @notice Sample simulation configuration file for the Celo bridge reconfiguration proposal.
  */
 import type { SimulationConfigNew } from '../types';
-import { Interface } from '@ethersproject/abi';
-import { namehash } from 'viem';
 
 // Get interfaces to facilitate encoding the calls we want to execute.
 const ensPublicResolverAbi = [
