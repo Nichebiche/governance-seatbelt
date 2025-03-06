@@ -55,6 +55,11 @@ type TenderlyError = {
   statusCode?: number;
 };
 
+type StateOverridesPayload = {
+  networkID: string;
+  stateOverrides: Record<string, { value: Record<string, string> }>;
+};
+
 // --- Simulation methods ---
 
 /**
@@ -639,7 +644,7 @@ async function getLatestBlock(chainId: BigNumberish): Promise<number> {
  * @notice Encode state overrides
  * @param payload State overrides to send
  */
-async function sendEncodeRequest(payload: any): Promise<StorageEncodingResponse> {
+async function sendEncodeRequest(payload: StateOverridesPayload): Promise<StorageEncodingResponse> {
   try {
     const fetchOptions = <Partial<FETCH_OPT>>{
       method: 'POST',
