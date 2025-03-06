@@ -1,11 +1,9 @@
-import { FunctionFragment, Interface } from '@ethersproject/abi';
 import { getAddress } from '@ethersproject/address';
 import { formatUnits } from '@ethersproject/units';
+import { decodeFunctionData, parseAbiItem, toFunctionSelector } from 'viem';
 import { bullet } from '../presentation/report';
 import type { FluffyCall, ProposalCheck } from '../types';
-import { ERC20_ABI, fetchTokenMetadata } from '../utils/contracts/erc20';
-
-const ierc20 = new Interface(ERC20_ABI);
+import { fetchTokenMetadata } from '../utils/contracts/erc20';
 
 /**
  * Decodes proposal target calldata into a human-readable format
@@ -17,7 +15,7 @@ export const checkDecodeCalldata: ProposalCheck = {
     // Generate the raw calldata for each proposal action
     const calldatas = proposal.signatures.map((sig, i) => {
       return sig
-        ? `${selectorFromSig(sig)}${proposal.calldatas[i].slice(2)}`
+        ? `${toFunctionSelector(sig)}${proposal.calldatas[i].slice(2)}`
         : proposal.calldatas[i];
     });
 
@@ -28,15 +26,25 @@ export const checkDecodeCalldata: ProposalCheck = {
         // Find the first matching call
         let call = findMatchingCall(getAddress(deps.timelock.address), calldata, calls);
         if (!call) {
-          const msg = `This transaction may have reverted: Could not find matching call for calldata ${calldata}`;
-          warnings.push(msg);
-          return null;
+          // If we can't find the call in the trace, add a warning
+          // Skip the warning for ETH transfers which might not appear in the trace
+          if (!(calldata === '0x' && BigInt(proposal.values[i].toString()) > 0n)) {
+            const msg = `Could not find matching call for target ${proposal.targets[i]} with calldata ${calldata}`;
+            warnings.push(msg);
+          }
+
+          // Create a synthetic call
+          call = {
+            from: deps.timelock.address,
+            to: proposal.targets[i],
+            input: calldata,
+            value: proposal.values[i].toString(),
+          } as FluffyCall;
+        } else {
+          // If we found the call, check for subcalls with the same input data
+          call = returnCallOrMatchingSubcall(calldata, call);
         }
-        // Now look for any subcalls that have the same input data, since if present these are the
-        // decoded calls. This often happens with proxies which aren't always decoded nicely, and
-        // will show the function name as `fallback`. Therefore, we look for the deepest function
-        // in the callstack with the same input data and use that to decode/prettify calldata
-        call = returnCallOrMatchingSubcall(calldata, call);
+
         return prettifyCalldata(call, proposal.targets[i]);
       }),
     );
@@ -49,22 +57,17 @@ export const checkDecodeCalldata: ProposalCheck = {
 // --- Helper methods ---
 
 /**
- * Given a human readable function signature, return the function selector
- */
-function selectorFromSig(sig: string): string {
-  return Interface.getSighash(FunctionFragment.from(sig));
-}
-
-/**
  * Given an array of calls, find the call matching the provided from address and calldata by
  * recursively traversing all calls in the trace. This is required because the call we're looking
  * for is not always at the same depth of the call stack. If all governor `execute` calls were made
  * from an EOA this would be true, but because calls to `execute` can also be made from contracts
  * we don't know the depth of the call containing `calldata`
+ * @dev Using any[] due to incompatible call types (CallTraceCall, FluffyCall) that share common properties
  */
+// biome-ignore lint/suspicious/noExplicitAny: <explanation>
 function findMatchingCall(from: string, calldata: string, calls: any[]): FluffyCall | null {
-  from = getAddress(from);
-  const callMatches = (f: string, c: string) => getAddress(f) === from && c === calldata;
+  const callMatches = (f: string, c: string) =>
+    getAddress(f) === getAddress(from) && c === calldata;
   for (const call of calls) {
     if (callMatches(call.from, call.input)) return call;
     if (call.calls) {
@@ -132,49 +135,64 @@ function getDescription(target: string, sig: string, call: FluffyCall) {
  * Given a call, return a human-readable description of the call
  */
 async function prettifyCalldata(call: FluffyCall, target: string) {
-  // If this is a token action, we decode the amounts and show the token symbol
-  const selector = call.input.slice(0, 10);
-  const tokenSelectors = new Set([
-    '0x095ea7b3', // approve(address,uint256)
-    '0xa9059cbb', // transfer(address,uint256)
-    '0x23b872dd', // transferFrom(address,address,uint256)
-  ]);
-  const isTokenAction = tokenSelectors.has(selector);
-  const { name, symbol, decimals } = isTokenAction
-    ? await fetchTokenMetadata(call.to)
-    : { name: null, symbol: null, decimals: 0 };
-
-  switch (selector) {
-    // --- Custom descriptions for common methods ---
-    // Custom descriptions add the word "formatted" to the end so it's clear that this is a custom error
-    // message and all numbers with decimals have already been parsed to a human readable format.
-    // We decode the calldata manually instead of relying on `call.decoded_input` because it's more
-    // robust. Sometimes `call.decoded_input` may be undefined when Tenderly is not familiar with a
-    // given proxy pattern, but since this is known calldata we know how it should be decoded regardless.
-    case '0x095ea7b3': {
-      const decodedCalldata = ierc20.decodeFunctionData('approve', call.input);
-      const spender = getAddress(decodedCalldata.spender);
-      const amount = formatUnits(decodedCalldata.value, decimals);
-      return `\`${call.from}\` approves \`${spender}\` to spend ${amount} ${symbol} (formatted)`;
-    }
-    case '0xba45b0b8': {
-      const decodedCalldata = ierc20.decodeFunctionData('transfer', call.input);
-      const receiver = getAddress(decodedCalldata.to);
-      const amount = formatUnits(decodedCalldata.value, decimals);
-      return `\`${call.from}\` transfers \`${amount}\` ${symbol} to ${receiver} (formatted)`;
-    }
-    case '0x23b872dd': {
-      const decodedCalldata = ierc20.decodeFunctionData('transferFrom', call.input);
-      const from = getAddress(decodedCalldata.from);
-      const to = getAddress(decodedCalldata.to);
-      const amount = formatUnits(decodedCalldata.value, decimals);
-      return `\`${call.from}\` transfers \`${amount}\` ${symbol} from ${from} to ${to} (formatted)`;
-    }
+  // Handle ETH transfers (empty calldata with value)
+  if (call.input === '0x' && call.value && BigInt(call.value) > 0n) {
+    const ethAmount = formatUnits(call.value, 18);
+    return `\`${call.from}\` transfers ${ethAmount} ETH to \`${target}\` (formatted)`;
   }
 
-  // --- Generic handling ---
-  // Generic descriptions add the word "generic" to the end so it's clear this is a standardized
-  // description and numbers with decimals have NOT been parsed to human readable format
+  // Handle token transfers
+  const selector = call.input.slice(0, 10);
+  const isTokenAction = selector in TOKEN_HANDLERS;
+
+  if (isTokenAction) {
+    const { symbol, decimals } = await fetchTokenMetadata(call.to);
+    return TOKEN_HANDLERS[selector](call, decimals || 0, symbol);
+  }
+
+  // Generic handling for non-token actions
   const sig = getSignature(call);
   return getDescription(target, sig, call);
 }
+
+const TOKEN_HANDLERS: Record<
+  string,
+  (call: FluffyCall, decimals: number, symbol: string | null) => string
+> = {
+  [toFunctionSelector('approve(address,uint256)')]: (
+    call: FluffyCall,
+    decimals: number,
+    symbol: string | null,
+  ) => {
+    const { args } = decodeFunctionData({
+      abi: [parseAbiItem('function approve(address spender, uint256 value)')],
+      data: call.input as `0x${string}`,
+    });
+    const [spender, value] = args;
+    return `\`${call.from}\` approves \`${getAddress(spender)}\` to spend ${formatUnits(value, decimals)} ${symbol} (formatted)`;
+  },
+  [toFunctionSelector('transfer(address,uint256)')]: (
+    call: FluffyCall,
+    decimals: number,
+    symbol: string | null,
+  ) => {
+    const { args } = decodeFunctionData({
+      abi: [parseAbiItem('function transfer(address to, uint256 value)')],
+      data: call.input as `0x${string}`,
+    });
+    const [to, value] = args;
+    return `\`${call.from}\` transfers ${formatUnits(value, decimals)} ${symbol} to \`${getAddress(to)}\` (formatted)`;
+  },
+  [toFunctionSelector('transferFrom(address,address,uint256)')]: (
+    call: FluffyCall,
+    decimals: number,
+    symbol: string | null,
+  ) => {
+    const { args } = decodeFunctionData({
+      abi: [parseAbiItem('function transferFrom(address from, address to, uint256 value)')],
+      data: call.input as `0x${string}`,
+    });
+    const [from, to, value] = args;
+    return `\`${call.from}\` transfers ${formatUnits(value, decimals)} ${symbol} from \`${getAddress(from)}\` to \`${getAddress(to)}\` (formatted)`;
+  },
+};
