@@ -51,6 +51,10 @@ const TENDERLY_FETCH_OPTIONS = {
 };
 const DEFAULT_FROM = '0xD73a92Be73EfbFcF3854433A5FcbAbF9c1316073'; // arbitrary EOA not used on-chain
 
+type TenderlyError = {
+  statusCode?: number;
+};
+
 // --- Simulation methods ---
 
 /**
@@ -679,9 +683,9 @@ async function sendSimulation(payload: TenderlyPayload, delay = 1000): Promise<T
     }
 
     return sim;
-  } catch (err: any) {
+  } catch (err) {
     console.log('err in sendSimulation: ', JSON.stringify(err));
-    const is429 = typeof err === 'object' && err?.statusCode === 429;
+    const is429 = (err as TenderlyError)?.statusCode === 429;
     if (delay > 8000 || !is429) {
       console.warn('Simulation request failed with the below request payload and error');
       console.log(JSON.stringify(fetchOptions));
