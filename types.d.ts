@@ -40,6 +40,7 @@ export type SimulationConfig =
 export interface SimulationResult {
 	sim: TenderlySimulation;
 	proposal: ProposalEvent;
+	deps: ProposalData;
 	latestBlock: Block;
 }
 

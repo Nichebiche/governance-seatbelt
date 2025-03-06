@@ -28,6 +28,7 @@ import {
 	TENDERLY_SIM_URL,
 } from "../constants";
 import {
+	ProposalData,
 	ProposalEvent,
 	ProposalStruct,
 	SimulationConfig,
@@ -64,7 +65,7 @@ export async function simulate(config: SimulationConfig) {
  * @notice Simulates execution of an on-chain proposal that has not yet been executed
  * @param config Configuration object
  */
-async function simulateNew(
+export async function simulateNew(
 	config: SimulationConfigNew,
 ): Promise<SimulationResult> {
 	// --- Validate config ---
@@ -317,9 +318,14 @@ async function simulateNew(
 
 	// Run the simulation
 	const sim = await sendSimulation(simulationPayload);
+	const deps: ProposalData = {
+		governor,
+		timelock,
+		provider,
+	};
 
 	writeFileSync("new-response.json", JSON.stringify(sim, null, 2));
-	return { sim, proposal, latestBlock };
+	return { sim, proposal, latestBlock, deps };
 }
 
 /**
@@ -551,8 +557,13 @@ async function simulateProposed(
 
 	// Run the simulation
 	const sim = await sendSimulation(simulationPayload);
+	const deps: ProposalData = {
+		governor,
+		timelock,
+		provider,
+	};
 
-	return { sim, proposal: formattedProposal, latestBlock };
+	return { sim, proposal: formattedProposal, latestBlock, deps };
 }
 
 /**
@@ -568,6 +579,7 @@ async function simulateExecuted(
 	const latestBlock = await provider.getBlock("latest");
 	const blockRange = [0, latestBlock.number];
 	const governor = getGovernor(governorType, governorAddress);
+	const timelock = await getTimelock(governorType, governorAddress);
 
 	const [createProposalLogs, proposalExecutedLogs] = await Promise.all([
 		governor.queryFilter(governor.filters.ProposalCreated(), ...blockRange),
@@ -615,7 +627,12 @@ async function simulateExecuted(
 		...proposal,
 		id: BigNumber.from(proposalId), // Make sure we always have an ID field
 	};
-	return { sim, proposal: formattedProposal, latestBlock };
+	const deps: ProposalData = {
+		governor,
+		timelock,
+		provider,
+	};
+	return { sim, proposal: formattedProposal, latestBlock, deps };
 }
 
 // --- Helper methods ---
