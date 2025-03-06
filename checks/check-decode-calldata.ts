@@ -1,11 +1,11 @@
-import { FunctionFragment, Interface } from '@ethersproject/abi'
-import { getAddress } from '@ethersproject/address'
-import { formatUnits } from '@ethersproject/units'
-import { ProposalCheck, FluffyCall } from '../types'
-import { ERC20_ABI, fetchTokenMetadata } from '../utils/contracts/erc20'
-import { bullet } from '../presentation/report'
+import { FunctionFragment, Interface } from '@ethersproject/abi';
+import { getAddress } from '@ethersproject/address';
+import { formatUnits } from '@ethersproject/units';
+import type { ProposalCheck, FluffyCall } from '../types';
+import { ERC20_ABI, fetchTokenMetadata } from '../utils/contracts/erc20';
+import { bullet } from '../presentation/report';
 
-const ierc20 = new Interface(ERC20_ABI)
+const ierc20 = new Interface(ERC20_ABI);
 
 /**
  * Decodes proposal target calldata into a human-readable format
@@ -13,36 +13,38 @@ const ierc20 = new Interface(ERC20_ABI)
 export const checkDecodeCalldata: ProposalCheck = {
   name: 'Decodes target calldata into a human-readable format',
   async checkProposal(proposal, sim, deps) {
-    let warnings: string[] = []
+    let warnings: string[] = [];
     // Generate the raw calldata for each proposal action
     const calldatas = proposal.signatures.map((sig, i) => {
-      return sig ? `${selectorFromSig(sig)}${proposal.calldatas[i].slice(2)}` : proposal.calldatas[i]
-    })
+      return sig
+        ? `${selectorFromSig(sig)}${proposal.calldatas[i].slice(2)}`
+        : proposal.calldatas[i];
+    });
 
     // Find the call with that calldata and parse it
-    const calls = sim.transaction.transaction_info.call_trace.calls
+    const calls = sim.transaction.transaction_info.call_trace.calls;
     const descriptions = await Promise.all(
       calldatas.map(async (calldata, i) => {
         // Find the first matching call
-        let call = findMatchingCall(getAddress(deps.timelock.address), calldata, calls)
+        let call = findMatchingCall(getAddress(deps.timelock.address), calldata, calls);
         if (!call) {
-          const msg = `This transaction may have reverted: Could not find matching call for calldata ${calldata}`
-          warnings.push(msg)
-          return null
+          const msg = `This transaction may have reverted: Could not find matching call for calldata ${calldata}`;
+          warnings.push(msg);
+          return null;
         }
         // Now look for any subcalls that have the same input data, since if present these are the
         // decoded calls. This often happens with proxies which aren't always decoded nicely, and
         // will show the function name as `fallback`. Therefore, we look for the deepest function
         // in the callstack with the same input data and use that to decode/prettify calldata
-        call = returnCallOrMatchingSubcall(calldata, call)
-        return prettifyCalldata(call, proposal.targets[i])
-      })
-    )
+        call = returnCallOrMatchingSubcall(calldata, call);
+        return prettifyCalldata(call, proposal.targets[i]);
+      }),
+    );
 
-    const info = descriptions.filter((d) => d !== null).map((d) => bullet(d as string))
-    return { info, warnings, errors: [] }
+    const info = descriptions.filter((d) => d !== null).map((d) => bullet(d as string));
+    return { info, warnings, errors: [] };
   },
-}
+};
 
 // --- Helper methods ---
 
@@ -50,7 +52,7 @@ export const checkDecodeCalldata: ProposalCheck = {
  * Given a human readable function signature, return the function selector
  */
 function selectorFromSig(sig: string): string {
-  return Interface.getSighash(FunctionFragment.from(sig))
+  return Interface.getSighash(FunctionFragment.from(sig));
 }
 
 /**
@@ -61,16 +63,16 @@ function selectorFromSig(sig: string): string {
  * we don't know the depth of the call containing `calldata`
  */
 function findMatchingCall(from: string, calldata: string, calls: any[]): FluffyCall | null {
-  from = getAddress(from)
-  const callMatches = (f: string, c: string) => getAddress(f) === from && c === calldata
+  from = getAddress(from);
+  const callMatches = (f: string, c: string) => getAddress(f) === from && c === calldata;
   for (const call of calls) {
-    if (callMatches(call.from, call.input)) return call
+    if (callMatches(call.from, call.input)) return call;
     if (call.calls) {
-      const foundCall = findMatchingCall(from, calldata, call.calls)
-      if (foundCall) return foundCall
+      const foundCall = findMatchingCall(from, calldata, call.calls);
+      if (foundCall) return foundCall;
     }
   }
-  return null
+  return null;
 }
 
 /**
@@ -79,8 +81,10 @@ function findMatchingCall(from: string, calldata: string, calls: any[]): FluffyC
  * calldata will be the fallback function)
  */
 function returnCallOrMatchingSubcall(calldata: string, call: FluffyCall): FluffyCall {
-  if (!call.calls || !call.calls?.length) return call
-  return call.calls[0].input === calldata ? returnCallOrMatchingSubcall(calldata, call.calls[0] as FluffyCall) : call
+  if (!call.calls || !call.calls?.length) return call;
+  return call.calls[0].input === calldata
+    ? returnCallOrMatchingSubcall(calldata, call.calls[0] as FluffyCall)
+    : call;
 }
 
 /**
@@ -88,40 +92,40 @@ function returnCallOrMatchingSubcall(calldata: string, call: FluffyCall): Fluffy
  */
 function getSignature(call: FluffyCall) {
   // Return selector if call is not decoded, otherwise generate the signature
-  if (!call.function_name) return call.input.slice(0, 10)
-  let sig = `${call.function_name}(`
+  if (!call.function_name) return call.input.slice(0, 10);
+  let sig = `${call.function_name}(`;
   call.decoded_input?.forEach((arg, i) => {
-    if (i !== 0) sig += ', '
-    sig += arg.soltype.type
-    sig += arg.soltype.name ? ` ${arg.soltype.name}` : ''
-  })
-  sig += ')('
+    if (i !== 0) sig += ', ';
+    sig += arg.soltype.type;
+    sig += arg.soltype.name ? ` ${arg.soltype.name}` : '';
+  });
+  sig += ')(';
   call.decoded_output?.forEach((arg, i) => {
-    if (i !== 0) sig += ', '
-    sig += arg.soltype.type
-    sig += arg.soltype.name ? ` ${arg.soltype.name}` : ''
-  })
-  sig += ')'
-  return sig
+    if (i !== 0) sig += ', ';
+    sig += arg.soltype.type;
+    sig += arg.soltype.name ? ` ${arg.soltype.name}` : '';
+  });
+  sig += ')';
+  return sig;
 }
 
 /**
  * Given a target, signature, and call, generate a human-readable description
  */
 function getDescription(target: string, sig: string, call: FluffyCall) {
-  let description = `On contract \`${target}\`, call `
-  if (!call.decoded_input) return `${description} \`${call.input}\` (not decoded)`
+  let description = `On contract \`${target}\`, call `;
+  if (!call.decoded_input) return `${description} \`${call.input}\` (not decoded)`;
 
-  description += `\`${sig}\` with arguments `
+  description += `\`${sig}\` with arguments `;
   call.decoded_input?.forEach((arg, i) => {
-    if (i !== 0) description += ', '
-    description += '`'
-    description += arg.soltype.name ? `${arg.soltype.name}=` : ''
-    description += arg.value
-    description += '`'
-  })
+    if (i !== 0) description += ', ';
+    description += '`';
+    description += arg.soltype.name ? `${arg.soltype.name}=` : '';
+    description += arg.value;
+    description += '`';
+  });
 
-  return `${description} (generic)`
+  return `${description} (generic)`;
 }
 
 /**
@@ -129,16 +133,16 @@ function getDescription(target: string, sig: string, call: FluffyCall) {
  */
 async function prettifyCalldata(call: FluffyCall, target: string) {
   // If this is a token action, we decode the amounts and show the token symbol
-  const selector = call.input.slice(0, 10)
+  const selector = call.input.slice(0, 10);
   const tokenSelectors = new Set([
     '0x095ea7b3', // approve(address,uint256)
     '0xa9059cbb', // transfer(address,uint256)
     '0x23b872dd', // transferFrom(address,address,uint256)
-  ])
-  const isTokenAction = tokenSelectors.has(selector)
+  ]);
+  const isTokenAction = tokenSelectors.has(selector);
   const { name, symbol, decimals } = isTokenAction
     ? await fetchTokenMetadata(call.to)
-    : { name: null, symbol: null, decimals: 0 }
+    : { name: null, symbol: null, decimals: 0 };
 
   switch (selector) {
     // --- Custom descriptions for common methods ---
@@ -148,29 +152,29 @@ async function prettifyCalldata(call: FluffyCall, target: string) {
     // robust. Sometimes `call.decoded_input` may be undefined when Tenderly is not familiar with a
     // given proxy pattern, but since this is known calldata we know how it should be decoded regardless.
     case '0x095ea7b3': {
-      const decodedCalldata = ierc20.decodeFunctionData('approve', call.input)
-      const spender = getAddress(decodedCalldata.spender)
-      const amount = formatUnits(decodedCalldata.value, decimals)
-      return `\`${call.from}\` approves \`${spender}\` to spend ${amount} ${symbol} (formatted)`
+      const decodedCalldata = ierc20.decodeFunctionData('approve', call.input);
+      const spender = getAddress(decodedCalldata.spender);
+      const amount = formatUnits(decodedCalldata.value, decimals);
+      return `\`${call.from}\` approves \`${spender}\` to spend ${amount} ${symbol} (formatted)`;
     }
     case '0xba45b0b8': {
-      const decodedCalldata = ierc20.decodeFunctionData('transfer', call.input)
-      const receiver = getAddress(decodedCalldata.to)
-      const amount = formatUnits(decodedCalldata.value, decimals)
-      return `\`${call.from}\` transfers \`${amount}\` ${symbol} to ${receiver} (formatted)`
+      const decodedCalldata = ierc20.decodeFunctionData('transfer', call.input);
+      const receiver = getAddress(decodedCalldata.to);
+      const amount = formatUnits(decodedCalldata.value, decimals);
+      return `\`${call.from}\` transfers \`${amount}\` ${symbol} to ${receiver} (formatted)`;
     }
     case '0x23b872dd': {
-      const decodedCalldata = ierc20.decodeFunctionData('transferFrom', call.input)
-      const from = getAddress(decodedCalldata.from)
-      const to = getAddress(decodedCalldata.to)
-      const amount = formatUnits(decodedCalldata.value, decimals)
-      return `\`${call.from}\` transfers \`${amount}\` ${symbol} from ${from} to ${to} (formatted)`
+      const decodedCalldata = ierc20.decodeFunctionData('transferFrom', call.input);
+      const from = getAddress(decodedCalldata.from);
+      const to = getAddress(decodedCalldata.to);
+      const amount = formatUnits(decodedCalldata.value, decimals);
+      return `\`${call.from}\` transfers \`${amount}\` ${symbol} from ${from} to ${to} (formatted)`;
     }
   }
 
   // --- Generic handling ---
   // Generic descriptions add the word "generic" to the end so it's clear this is a standardized
   // description and numbers with decimals have NOT been parsed to human readable format
-  const sig = getSignature(call)
-  return getDescription(target, sig, call)
+  const sig = getSignature(call);
+  return getDescription(target, sig, call);
 }
