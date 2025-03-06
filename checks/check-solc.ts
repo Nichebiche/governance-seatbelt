@@ -95,8 +95,11 @@ export const checkSolc: ProposalCheck = {
 async function runCryticCompile(address: string): Promise<ExecOutput | null> {
   try {
     return await exec(`crytic-compile ${address} --etherscan-apikey ${ETHERSCAN_API_KEY}`);
-  } catch (e: any) {
-    if ('stderr' in e) return e; // Output is in stderr, but slither reports results as an exception.
+  } catch (e) {
+    const error = e as unknown;
+    if (error && typeof error === 'object' && 'stderr' in error) {
+      return error as ExecOutput; // Output is in stderr, but slither reports results as an exception.
+    }
     console.warn(`Error: Could not run crytic-compile via Python: ${JSON.stringify(e)}`);
     return null;
   }
