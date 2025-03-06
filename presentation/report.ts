@@ -54,7 +54,7 @@ export function toAddressLink(address: string, code = false) {
 // -- Report formatters ---
 
 function toMessageList(header: string, text: string[]): string {
-  return text.length > 0 ? `${bold(header)}:\n\n` + text.map((msg) => `${msg}`).join('\n') : '';
+  return text.length > 0 ? `${bold(header)}:\n\n${text.map((msg) => `${msg}`).join('\n')}` : '';
 }
 
 /**

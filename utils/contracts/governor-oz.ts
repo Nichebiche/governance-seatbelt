@@ -81,11 +81,6 @@ export function getOzSlots(proposalId: BigNumberish) {
   //       uint256 abstainVotes;                     2
   //       mapping(address => bool) hasVoted;        3
   //     }
-  const etaOffset = 2;
-  const targetsOffset = 3;
-  const valuesOffset = 4;
-  const signaturesOffset = 5;
-  const calldatasOffset = 6;
   const canceledSlotOffset = 3; // this is packed with `executed`
 
   const againstVotesOffset = 0;

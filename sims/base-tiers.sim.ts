@@ -1,5 +1,5 @@
 import { Interface } from '@ethersproject/abi';
-import { formatEther, parseUnits } from 'ethers/lib/utils';
+
 /**
  * @notice Sample simulation configuration file for the arb lm distribution proposal.
  */
@@ -19,8 +19,6 @@ const l2AccountForwarderAddress = '0x31FAfd4889FA1269F7a13A66eE0fB458f27D72A9';
 
 const v3FactoryInterface = new Interface(v3FactoryAbi);
 const v3FactoryAddress = '0x33128a8fC17869897dcE68Ed026d694621f6FDfD';
-
-const timelockAliasAddress = '0x2BAD8182C09F50c8318d769245beA52C32Be46CD';
 
 // get encoded function calls
 const bps2Enable = v3FactoryInterface.encodeFunctionData('enableFeeAmount', [200, 4]);
