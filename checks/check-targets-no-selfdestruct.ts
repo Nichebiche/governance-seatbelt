@@ -7,7 +7,7 @@ import type { ProposalCheck } from '../types';
  */
 export const checkTargetsNoSelfdestruct: ProposalCheck = {
   name: 'Check all targets do not contain selfdestruct',
-  async checkProposal(proposal, sim, deps) {
+  async checkProposal(proposal, _, deps) {
     const uniqueTargets = proposal.targets.filter(
       (addr: string, i: number, targets: string[]) => targets.indexOf(addr) === i,
     );

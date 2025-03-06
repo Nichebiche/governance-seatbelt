@@ -98,8 +98,8 @@ export const checkStateChanges: ProposalCheck = {
           // Unsure if the same can happen to dirty, let's assume its possible to collect all keys
           const keys = Object.keys(diff.original || {}).concat(Object.keys(diff.dirty || {}));
 
-          const original = diff.original as Record<string, any>;
-          const dirty = diff.dirty as Record<string, any>;
+          const original = diff.original as Record<string, string>;
+          const dirty = diff.dirty as Record<string, string>;
           for (const k of keys) {
             const oldVal = JSON.stringify(original && k in original ? original[k] : '');
             const newVal = JSON.stringify(dirty && k in dirty ? dirty[k] : '');

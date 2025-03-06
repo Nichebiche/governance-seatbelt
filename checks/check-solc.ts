@@ -22,7 +22,7 @@ type ExecOutput = {
  */
 export const checkSolc: ProposalCheck = {
   name: 'Runs solc against the verified contracts',
-  async checkProposal(proposal, sim, deps) {
+  async checkProposal(_, sim, deps) {
     const info: string[] = [];
     const warnings: string[] = [];
 
