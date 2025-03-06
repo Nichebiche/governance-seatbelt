@@ -693,8 +693,8 @@ interface LogRaw {
 
 interface StateDiff {
   soltype: SoltypeElement | null;
-  original: string | Record<string, any>;
-  dirty: string | Record<string, any>;
+  original: string | Record<string, string>;
+  dirty: string | Record<string, string>;
   raw: RawElement[];
 }
 
