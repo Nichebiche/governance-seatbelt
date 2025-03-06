@@ -6,7 +6,7 @@ import { labelhash, namehash } from 'viem';
  with addresses of v2 deployments
  */
 import type { SimulationConfigNew } from '../types';
-import ENSPublicResolverABI from '../utils/ABIs/ENSPublicResolverABI.json' assert { type: 'json' };
+import ENSPublicResolverABI from '../utils/abis/ENSPublicResolverABI.json' assert { type: 'json' };
 
 const ensRegistryAbi = [
   'function setSubnodeRecord(bytes32 node, bytes32 label, address owner, address resolver, uint64 ttl) external',

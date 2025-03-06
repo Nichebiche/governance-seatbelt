@@ -6,7 +6,7 @@ import { labelhash, namehash } from 'viem';
  * Be aware this is identical to an already executed proposal: https://app.uniswap.org/#/vote/2/11?chain=mainnet
  */
 import type { SimulationConfigNew } from '../types';
-import ENSPublicResolverABI from '../utils/ABIs/ENSPublicResolverABI.json' assert { type: 'json' };
+import ENSPublicResolverABI from '../utils/abis/ENSPublicResolverABI.json' assert { type: 'json' };
 
 // Get interfaces to facilitate encoding the calls we want to execute.
 const ensRegistryAbi = [
