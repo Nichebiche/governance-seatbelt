@@ -117,7 +117,7 @@ export interface AllCheckResults {
 
 // --- Tenderly types, Request ---
 // Response from tenderly endpoint that encodes state data
-type StorageEncodingResponse = {
+export type StorageEncodingResponse = {
   stateOverrides: {
     // these keys are the contract addresses, all lower case
     [key: string]: {

@@ -145,9 +145,9 @@ export async function simulateNew(config: SimulationConfigNew): Promise<Simulati
 
   // Generate the state object needed to mark the transactions as queued in the Timelock's storage
   const timelockStorageObj: Record<string, string> = {};
-  txHashes.forEach((hash) => {
+  for (const hash of txHashes) {
     timelockStorageObj[`queuedTransactions[${hash}]`] = 'true';
-  });
+  }
 
   if (governorType === 'oz') {
     const id = hashOperationBatchOz(
@@ -674,14 +674,16 @@ async function sendSimulation(payload: TenderlyPayload, delay = 1000): Promise<T
 
     // Post-processing to ensure addresses we use are checksummed (since ethers returns checksummed addresses)
     sim.transaction.addresses = sim.transaction.addresses.map(getAddress);
-    sim.contracts.forEach((contract) => (contract.address = getAddress(contract.address)));
+    for (const contract of sim.contracts) {
+      contract.address = getAddress(contract.address);
+    }
 
     return sim;
   } catch (err: any) {
     console.log('err in sendSimulation: ', JSON.stringify(err));
     const is429 = typeof err === 'object' && err?.statusCode === 429;
     if (delay > 8000 || !is429) {
-      console.warn(`Simulation request failed with the below request payload and error`);
+      console.warn('Simulation request failed with the below request payload and error');
       console.log(JSON.stringify(fetchOptions));
       throw err;
     }
