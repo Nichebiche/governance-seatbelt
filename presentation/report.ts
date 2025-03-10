@@ -1,4 +1,4 @@
-import fs, { promises as fsp } from 'node:fs';
+import fs, { promises as fsp, writeFileSync } from 'node:fs';
 import type { Block } from '@ethersproject/abstract-provider';
 import type { BigNumber } from 'ethers';
 import { mdToPdf } from 'md-to-pdf';
@@ -13,8 +13,9 @@ import remarkToc from 'remark-toc';
 import { unified } from 'unified';
 import { visit } from 'unist-util-visit';
 import type { Visitor } from 'unist-util-visit';
-import type { AllCheckResults, GovernorType, ProposalEvent } from '../types';
+import type { AllCheckResults, GovernorType, ProposalEvent, SimulationData } from '../types';
 import { formatProposalId } from '../utils/contracts/governor';
+import { join } from 'node:path';
 
 // --- Markdown helpers ---
 
@@ -242,4 +243,54 @@ function remarkFixEmojiLinks() {
       }
     }) as Visitor<Link>);
   };
+}
+/*
+ * @notice Write simulation results to frontend public directory for easy access
+ */
+export function writeFrontendData(simOutputs: SimulationData[]) {
+  if (simOutputs.length === 0) {
+    console.log('No simulation results to write');
+    return;
+  }
+
+  // Process the simulation outputs to create a frontend-friendly format
+  const frontendData = simOutputs.map((simOutput) => {
+    const { config, proposal } = simOutput;
+
+    // Extract the proposal data in the format expected by the frontend
+    // Handle different types of simulation configs
+    if (config.type === 'new') {
+      // SimulationConfigNew has targets, values, etc.
+      return {
+        id: `${config.daoName}-${config.targets.join('')}`,
+        targets: config.targets.map((target) => target as `0x${string}`),
+        values: config.values.map((value) => BigInt(value.toString())),
+        signatures: config.signatures,
+        calldatas: config.calldatas.map((data) => data as `0x${string}`),
+        description: config.description,
+      };
+    }
+
+    // For proposed or executed proposals, use the proposal event data
+    return {
+      id: `${config.daoName}-${proposal.targets.join('')}`,
+      targets: proposal.targets.map((target) => target as `0x${string}`),
+      values: proposal.values.map((value) => BigInt(value.toString())),
+      signatures: proposal.signatures,
+      calldatas: proposal.calldatas.map((data) => data as `0x${string}`),
+      description: proposal.description,
+    };
+  });
+
+  const frontendPublicDir = join(__dirname, 'frontend', 'public');
+
+  writeFileSync(
+    join(frontendPublicDir, 'simulation-results.json'),
+    JSON.stringify(
+      frontendData,
+      (_, value) => (typeof value === 'bigint' ? value.toString() : value),
+      2,
+    ),
+  );
+  console.log('Simulation results written to frontend/public/simulation-results.json');
 }

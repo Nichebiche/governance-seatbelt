@@ -1,7 +1,7 @@
 import { DEFAULT_GOVERNOR_ADDRESS, GOVERNOR_ABI } from '@/config';
 import { useMutation } from '@tanstack/react-query';
 import { usePublicClient, useWriteContract } from 'wagmi';
-import { useNewResponseFile, type Proposal } from '../../hooks/use-new-response-file';
+import { useNewResponseFile } from './use-new-response-file';
 
 export function useWriteProposeNew() {
   const publicClient = usePublicClient();

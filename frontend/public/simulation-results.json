@@ -1,0 +1,10 @@
+[
+  {
+    "id": "Sample-Proposal-0x123",
+    "targets": ["0x1234567890123456789012345678901234567890"],
+    "values": ["1000000000000000000"],
+    "signatures": ["transfer(address,uint256)"],
+    "calldatas": ["0x0000000000000000000000000000000000000000000000000000000000000000"],
+    "description": "Sample proposal for testing"
+  }
+] 

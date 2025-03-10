@@ -9,20 +9,26 @@ export interface Proposal {
   description: string;
 }
 
-export function useNewResponseFile() {
+export function useSimulationResponseFile() {
   return useSuspenseQuery<Proposal>({
-    queryKey: ['new-response-file'],
+    queryKey: ['simulation-response-file'],
     queryFn: async () => {
-      // Fetch the simulation results from our API route
-      const response = await fetch('/api/simulation-results');
+      // Fetch the simulation results from the public directory
+      const response = await fetch('/simulation-results.json', {
+        // Add cache control to prevent caching issues
+        cache: 'no-store',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
 
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        const errorMessage =
-          errorData.message ||
-          `Failed to fetch simulation results: ${response.status} ${response.statusText}`;
-        console.error(errorMessage);
-        throw new Error(errorMessage);
+        console.error(
+          `Error fetching simulation results: ${response.status} ${response.statusText}`,
+        );
+        throw new Error(
+          `Failed to fetch simulation results: ${response.status} ${response.statusText}`,
+        );
       }
 
       const data = await response.json();
@@ -36,12 +42,9 @@ export function useNewResponseFile() {
           values: data[0].values.map((value: string) => BigInt(value)),
         };
       }
-
-      console.error('No simulation data found in the response');
-      throw new Error('No simulation data found');
     },
     // Add retry logic
-    retry: 1,
+    retry: 3,
     retryDelay: 1000,
   });
 }
