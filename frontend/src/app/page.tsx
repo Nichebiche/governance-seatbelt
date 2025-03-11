@@ -55,7 +55,6 @@ export default function Home() {
 
 // Separate component for the proposal section
 function ProposalSection({ isConnected }: { isConnected: boolean }) {
-  // Use the hook directly - no try/catch
   const { data: proposal, error } = useNewResponseFile();
   const { mutate: proposeNew, isPending } = useWriteProposeNew();
 
@@ -66,20 +65,11 @@ function ProposalSection({ isConnected }: { isConnected: boolean }) {
     }
 
     toast.promise(
-      new Promise((resolve, reject) => {
-        proposeNew(undefined, {
-          onSuccess: (data) => {
-            resolve(data);
-          },
-          onError: (error) => {
-            reject(error);
-          },
-        });
+      new Promise(() => {
+        proposeNew();
       }),
       {
         loading: 'Creating proposal...',
-        success: 'Proposal created successfully!',
-        error: (err) => `Error: ${err.message || 'Failed to create proposal'}`,
       },
     );
   };
@@ -125,7 +115,7 @@ function ProposalSection({ isConnected }: { isConnected: boolean }) {
       <div className="flex gap-4 items-center">
         <ConnectButton />
         {isConnected && (
-          <Button onClick={handlePropose} disabled={isPending}>
+          <Button onClick={handlePropose} disabled={isPending} className="cursor-pointer">
             {isPending ? 'Creating Proposal...' : 'Propose'}
           </Button>
         )}
