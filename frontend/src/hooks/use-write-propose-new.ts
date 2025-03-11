@@ -26,47 +26,50 @@ export function useWriteProposeNew() {
         throw new Error('No proposal data available');
       }
 
-      try {
-        // Submit the proposal
-        const hash = await propose({
-          address: DEFAULT_GOVERNOR_ADDRESS,
-          abi: GOVERNOR_ABI,
-          functionName: 'propose',
-          args: [
-            proposal.targets,
-            proposal.values,
-            proposal.signatures,
-            proposal.calldatas,
-            proposal.description,
-          ],
-        });
+      // Submit the proposal
+      const hash = await propose({
+        address: DEFAULT_GOVERNOR_ADDRESS,
+        abi: GOVERNOR_ABI,
+        functionName: 'propose',
+        args: [
+          proposal.targets,
+          proposal.values,
+          proposal.signatures,
+          proposal.calldatas,
+          proposal.description,
+        ],
+      });
 
-        console.log('📝 Proposal submitted:', hash);
-        toast.loading('Waiting for transaction confirmation...');
+      console.log('📝 Proposal submitted:', hash);
+      toast.loading('Waiting for transaction confirmation...');
 
-        // Wait for transaction receipt
-        const receipt = await publicClient.waitForTransactionReceipt({ hash });
-        console.log('✅ Transaction confirmed:', {
-          blockNumber: receipt.blockNumber,
-          status: receipt.status === 'success' ? '✅ Success' : '❌ Failed',
-          hash: receipt.transactionHash,
-        });
+      // Wait for transaction receipt
+      const receipt = await publicClient.waitForTransactionReceipt({ hash });
+      console.log('✅ Transaction confirmed:', {
+        blockNumber: receipt.blockNumber,
+        status: receipt.status === 'success' ? '✅ Success' : '❌ Failed',
+        hash: receipt.transactionHash,
+      });
 
-        if (receipt.status !== 'success') {
-          throw new Error('Proposal transaction failed');
-        }
-
-        toast.success('✅ Proposal Created!', {
-          description: `Transaction confirmed in block ${receipt.blockNumber}`,
-        });
-
-        return { hash, receipt };
-      } catch (error) {
-        toast.error('❌ Error', {
-          description: error instanceof Error ? error.message : 'Unknown error occurred',
-        });
-        throw error;
+      if (receipt.status !== 'success') {
+        throw new Error('Proposal transaction failed');
       }
+
+      toast.success('✅ Proposal Created!', {
+        description: `Transaction confirmed in block ${receipt.blockNumber}`,
+      });
+
+      return { hash, receipt };
+    },
+    onSuccess: (data) => {
+      toast.success('✅ Proposal Created!', {
+        description: `Transaction confirmed in block ${data.receipt.blockNumber}`,
+      });
+    },
+    onError: (error) => {
+      toast.error('❌ Error', {
+        description: error instanceof Error ? error.message : 'Unknown error occurred',
+      });
     },
   });
 }
