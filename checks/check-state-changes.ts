@@ -14,7 +14,12 @@ export const checkStateChanges: ProposalCheck = {
     // Check if the transaction reverted, and if so return revert reason
     if (!sim.transaction.status) {
       const txInfo = sim.transaction.transaction_info;
-      const reason = txInfo.stack_trace ? txInfo.stack_trace[0].error_reason : 'unknown error';
+      const callTraceError = txInfo.call_trace.error_reason;
+      const reason = callTraceError
+        ? callTraceError
+        : txInfo.stack_trace
+          ? txInfo.stack_trace[0].error_reason
+          : 'unknown error';
       const error = `Transaction reverted with reason: ${reason}`;
       return { info: [], warnings: [], errors: [error] };
     }
