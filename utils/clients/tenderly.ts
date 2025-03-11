@@ -345,9 +345,6 @@ async function simulateProposed(config: SimulationConfigProposed): Promise<Simul
     calldatas,
     description,
   } = proposalCreatedEvent.args as unknown as ProposalEvent;
-  console.log('🦄 ~ simulateProposed ~ calldatas:', calldatas);
-  console.log('🦄 ~ simulateProposed ~ sigs:', sigs);
-  console.log('🦄 ~ simulateProposed ~ targets:', targets);
 
   // Workaround an issue that ethers cannot decode the values properly.
   // We know that the values are the 4th parameter in
