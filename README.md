@@ -89,3 +89,13 @@ bun test tests/check-eth-balance-changes.test.ts
 ```
 
 Currently, there is a test for the ETH balance changes check, which verifies that the check correctly identifies and reports ETH transfers and balance changes. As new checks are added or existing checks are modified, corresponding tests should be added to ensure their functionality. The test framework is set up to use Bun's built-in testing capabilities and can be extended to cover additional checks in the future.
+
+### Checking Specific Proposals
+
+To check a specific proposal:
+
+```sh
+bun check-proposal <proposal-id>  # e.g., bun check-proposal 81
+```
+
+The report will be saved to `./reports/${daoName}/${governorAddress}/${proposalId}.md`.
