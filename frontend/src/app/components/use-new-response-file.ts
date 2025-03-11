@@ -1,16 +1,16 @@
-import type { Address } from 'viem';
-import { useSuspenseQuery } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 
 export interface Proposal {
-  targets: Address[];
+  id: string;
+  targets: `0x${string}`[];
   values: bigint[];
-  calldatas: `0x${string}`[];
   signatures: string[];
+  calldatas: `0x${string}`[];
   description: string;
 }
 
 export function useNewResponseFile() {
-  return useSuspenseQuery<Proposal>({
+  return useQuery<Proposal>({
     queryKey: ['new-response-file'],
     queryFn: async () => {
       // Fetch the simulation results from our API route
@@ -21,15 +21,11 @@ export function useNewResponseFile() {
         const errorMessage =
           errorData.message ||
           `Failed to fetch simulation results: ${response.status} ${response.statusText}`;
-        console.error(errorMessage);
         throw new Error(errorMessage);
       }
 
       const data = await response.json();
-
-      // Return the first simulation result if there are multiple
-      if (Array.isArray(data) && data.length > 0) {
-        console.log('Successfully loaded simulation data:', data[0]);
+      if (Array.isArray(data)) {
         return {
           ...data[0],
           // Convert string values back to their proper types
@@ -37,11 +33,10 @@ export function useNewResponseFile() {
         };
       }
 
-      console.error('No simulation data found in the response');
-      throw new Error('No simulation data found');
+      return {
+        ...data,
+        values: data.values.map((value: string) => BigInt(value)),
+      };
     },
-    // Add retry logic
-    retry: 1,
-    retryDelay: 1000,
   });
 }

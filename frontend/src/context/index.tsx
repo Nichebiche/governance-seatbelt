@@ -46,5 +46,4 @@ function ContextProvider({ children, cookies }: { children: ReactNode; cookies: 
     </WagmiProvider>
   );
 }
-
 export default ContextProvider;
