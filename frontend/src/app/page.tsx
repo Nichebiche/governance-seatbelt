@@ -64,14 +64,7 @@ function ProposalSection({ isConnected }: { isConnected: boolean }) {
       return;
     }
 
-    toast.promise(
-      new Promise(() => {
-        proposeNew();
-      }),
-      {
-        loading: 'Creating proposal...',
-      },
-    );
+    proposeNew();
   };
 
   // Show error if there is one
