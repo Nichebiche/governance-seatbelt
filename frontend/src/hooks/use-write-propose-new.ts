@@ -1,30 +1,36 @@
 import { DEFAULT_GOVERNOR_ADDRESS, GOVERNOR_ABI } from '@/config';
-import { useMutation } from '@tanstack/react-query';
-import { usePublicClient, useWalletClient, useSimulateContract } from 'wagmi';
+import { usePublicClient, useWriteContract } from 'wagmi';
 import { useNewResponseFile } from './use-new-response-file';
 import { toast } from 'sonner';
-import { useMemo } from 'react';
-import { isTestnet, testnetWalletClient } from '@/config/wagmi';
+import { useCallback, useState } from 'react';
+import { parseWeb3Error } from '@/lib/errors';
+import type { TransactionReceipt } from 'viem';
 
+const TRANSACTION_TIMEOUT = 30000; // 30 seconds timeout
+const HIGH_GAS_LIMIT = BigInt(10000000); // 10M gas limit for complex governance operations
+
+/**
+ * Hook for creating a new proposal
+ */
 export function useWriteProposeNew() {
   const publicClient = usePublicClient();
-  const { data: walletClient } = useWalletClient();
-  const walletClientToUse = useMemo(
-    () => (isTestnet ? testnetWalletClient : walletClient),
-    [walletClient],
-  );
   const { data: proposal } = useNewResponseFile();
+  const { writeContractAsync, data: hash, isPending: isPendingConfirmation } = useWriteContract();
+  const [isPending, setPending] = useState(false);
 
-  return useMutation({
-    mutationFn: async () => {
-      if (!publicClient) {
-        throw new Error('No public client found');
-      }
-      if (!walletClientToUse) {
-        throw new Error('No wallet connected');
-      }
+  const proposeNew = useCallback(async () => {
+    if (!publicClient) throw new Error('Public client not found');
+    if (!proposal) throw new Error('Proposal not found');
 
-      const { request } = await publicClient.simulateContract({
+    // Clear any existing toasts
+    toast.dismiss();
+
+    try {
+      // Show waiting for confirmation toast
+      const toastId = toast.loading('Waiting for confirmation...');
+
+      const hash = await writeContractAsync({
+        address: DEFAULT_GOVERNOR_ADDRESS,
         abi: GOVERNOR_ABI,
         functionName: 'propose',
         args: [
@@ -34,53 +40,58 @@ export function useWriteProposeNew() {
           proposal.calldatas,
           proposal.description,
         ],
-        address: DEFAULT_GOVERNOR_ADDRESS,
-        account: walletClientToUse?.account,
+        gas: HIGH_GAS_LIMIT, // Set high gas limit for governance operations
+      });
+      console.log('🦄 ~ proposeNew ~ hash:', hash);
+
+      setPending(true);
+
+      // Update toast to show waiting for transaction
+      toast.loading('Waiting for transaction to be confirmed...', {
+        id: toastId,
       });
 
-      console.log('Proposing with account:', walletClientToUse.account.address);
-      console.log('Proposal data:', {
-        targets: proposal.targets,
-        values: proposal.values,
-        signatures: proposal.signatures,
-        calldatas: proposal.calldatas,
-        description: proposal.description,
+      // Create a promise that rejects after timeout
+      const timeoutPromise = new Promise<TransactionReceipt>((_, reject) => {
+        setTimeout(() => reject(new Error('Transaction timed out')), TRANSACTION_TIMEOUT);
       });
 
-      // Submit the proposal
-      const hash = await walletClientToUse.writeContract(request);
+      // Race between the transaction receipt and timeout
+      const receipt = (await Promise.race([
+        publicClient.waitForTransactionReceipt({ hash }),
+        timeoutPromise,
+      ])) as TransactionReceipt;
 
-      console.log('📝 Proposal submitted:', hash);
-      toast.loading('Waiting for transaction confirmation...');
-
-      // Wait for transaction receipt
-      const receipt = await publicClient.waitForTransactionReceipt({ hash });
-      console.log('✅ Transaction confirmed:', {
-        blockNumber: receipt.blockNumber,
-        status: receipt.status === 'success' ? '✅ Success' : '❌ Failed',
-        hash: receipt.transactionHash,
-      });
-
-      if (receipt.status !== 'success') {
-        throw new Error('Proposal transaction failed');
+      // Check if transaction was successful
+      if (receipt.status === 'reverted') {
+        throw new Error('Transaction reverted');
       }
 
+      // Show success toast
       toast.success('✅ Proposal Created!', {
         description: `Transaction confirmed in block ${receipt.blockNumber}`,
       });
+      setPending(false);
 
-      return { hash, receipt };
-    },
-    onSuccess: (data) => {
-      toast.success('✅ Proposal Created!', {
-        description: `Transaction confirmed in block ${data.receipt.blockNumber}`,
-      });
-    },
-    onError: (error) => {
-      console.error('Proposal error:', error);
+      console.log(`Proposal created with hash: ${hash}`);
+      return hash;
+    } catch (error) {
+      setPending(false);
+      // Show error toast with more specific messages
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
       toast.error('❌ Error', {
-        description: error instanceof Error ? error.message : 'Unknown error occurred',
+        description: errorMessage.includes('Transaction timed out')
+          ? 'Transaction timed out. Please check Tenderly for details.'
+          : parseWeb3Error(error as Error),
       });
-    },
-  });
+      throw error;
+    }
+  }, [proposal, writeContractAsync, publicClient]);
+
+  return {
+    proposeNew,
+    hash,
+    isPendingConfirmation,
+    isPending,
+  };
 }

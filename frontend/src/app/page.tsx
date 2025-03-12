@@ -56,7 +56,7 @@ export default function Home() {
 // Separate component for the proposal section
 function ProposalSection({ isConnected }: { isConnected: boolean }) {
   const { data: proposal, error } = useNewResponseFile();
-  const { mutate: proposeNew, isPending } = useWriteProposeNew();
+  const { proposeNew, isPending, isPendingConfirmation } = useWriteProposeNew();
 
   const handlePropose = () => {
     if (!proposal) {
@@ -108,8 +108,16 @@ function ProposalSection({ isConnected }: { isConnected: boolean }) {
       <div className="flex gap-4 items-center">
         <ConnectButton />
         {isConnected && (
-          <Button onClick={handlePropose} disabled={isPending} className="cursor-pointer">
-            {isPending ? 'Creating Proposal...' : 'Propose'}
+          <Button
+            onClick={handlePropose}
+            disabled={isPending || isPendingConfirmation}
+            className="cursor-pointer"
+          >
+            {isPendingConfirmation
+              ? 'Confirming...'
+              : isPending
+                ? 'Creating Proposal...'
+                : 'Propose'}
           </Button>
         )}
       </div>
