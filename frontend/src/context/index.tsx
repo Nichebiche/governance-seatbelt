@@ -3,9 +3,9 @@
 import { wagmiAdapter, projectId } from '@/config';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { createAppKit } from '@reown/appkit/react';
-import { activeChain } from '@/config/chains';
 import React, { type ReactNode } from 'react';
 import { cookieToInitialState, WagmiProvider } from 'wagmi';
+import { prodMainnet } from '@/config/wagmi';
 
 const queryClient = new QueryClient();
 
@@ -25,8 +25,8 @@ const metadata = {
 createAppKit({
   adapters: [wagmiAdapter],
   projectId,
-  networks: [activeChain],
-  defaultNetwork: activeChain,
+  networks: [prodMainnet],
+  defaultNetwork: prodMainnet,
   metadata,
   featuredWalletIds: [],
   features: {
