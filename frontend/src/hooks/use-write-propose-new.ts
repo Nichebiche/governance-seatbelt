@@ -14,6 +14,9 @@ export function useWriteProposeNew() {
     if (isPending) {
       toast.loading('Confirming proposal...');
     }
+    return () => {
+      toast.dismiss();
+    };
   }, [isPending]);
 
   return useMutation({

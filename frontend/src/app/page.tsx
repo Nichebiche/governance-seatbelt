@@ -1,8 +1,8 @@
 'use client';
 
 import ConnectButton from '@/components/connect-button';
-import { type Proposal, useNewResponseFile } from '@/app/components/use-new-response-file';
-import { useWriteProposeNew } from '../hooks/use-write-propose-new';
+import { type Proposal, useNewResponseFile } from '@/hooks/use-new-response-file';
+import { useWriteProposeNew } from '@/hooks/use-write-propose-new';
 import { useAccount } from 'wagmi';
 import { Toaster } from '@/components/ui/sonner';
 import { toast } from 'sonner';
