@@ -1,6 +1,5 @@
 'use client';
 
-import ConnectButton from '@/components/connect-button';
 import { type Proposal, useNewResponseFile } from '@/hooks/use-new-response-file';
 import { useWriteProposeNew } from '@/hooks/use-write-propose-new';
 import { useAccount } from 'wagmi';
@@ -18,6 +17,7 @@ import {
 } from '@/components/ui/card';
 import { InfoIcon, AlertTriangleIcon, CheckCircleIcon } from 'lucide-react';
 import { ErrorBoundary } from 'react-error-boundary';
+import { ConnectButton } from '@rainbow-me/rainbowkit';
 
 // Fallback component for when the query fails
 function ErrorFallback({ error }: { error: Error }) {

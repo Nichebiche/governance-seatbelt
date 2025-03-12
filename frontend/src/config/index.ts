@@ -1,6 +1,5 @@
 import { GOVERNOR_ABI } from './abis';
-import { config, projectId } from './wagmi';
-import { wagmiAdapter } from './wagmi';
+import { config as wagmiConfig, projectId, queryClient } from './wagmi';
 
 // State names for readability
 export const PROPOSAL_STATES = [
@@ -23,4 +22,4 @@ export const REPORTS_DIR = process.env.REPORTS_DIR || '../reports';
 export const SIMS_DIR = process.env.SIMS_DIR || '../sims';
 
 export { GOVERNOR_ABI };
-export { wagmiAdapter, config as wagmiConfig, projectId };
+export { wagmiConfig, projectId, queryClient };
