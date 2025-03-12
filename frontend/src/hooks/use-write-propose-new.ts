@@ -1,37 +1,30 @@
 import { DEFAULT_GOVERNOR_ADDRESS, GOVERNOR_ABI } from '@/config';
 import { useMutation } from '@tanstack/react-query';
-import { usePublicClient, useWriteContract } from 'wagmi';
+import { usePublicClient, useWalletClient, useSimulateContract } from 'wagmi';
 import { useNewResponseFile } from './use-new-response-file';
 import { toast } from 'sonner';
-import { useEffect } from 'react';
+import { useMemo } from 'react';
+import { isTestnet, testnetWalletClient } from '@/config/wagmi';
 
 export function useWriteProposeNew() {
   const publicClient = usePublicClient();
+  const { data: walletClient } = useWalletClient();
+  const walletClientToUse = useMemo(
+    () => (isTestnet ? testnetWalletClient : walletClient),
+    [walletClient],
+  );
   const { data: proposal } = useNewResponseFile();
-  const { writeContractAsync: propose, isPending } = useWriteContract();
-
-  useEffect(() => {
-    if (isPending) {
-      toast.loading('Confirming proposal...');
-    }
-    return () => {
-      toast.dismiss();
-    };
-  }, [isPending]);
 
   return useMutation({
     mutationFn: async () => {
       if (!publicClient) {
-        throw new Error('Please connect your wallet');
+        throw new Error('No public client found');
+      }
+      if (!walletClientToUse) {
+        throw new Error('No wallet connected');
       }
 
-      if (!proposal) {
-        throw new Error('No proposal data available');
-      }
-
-      // Submit the proposal
-      const hash = await propose({
-        address: DEFAULT_GOVERNOR_ADDRESS,
+      const { request } = await publicClient.simulateContract({
         abi: GOVERNOR_ABI,
         functionName: 'propose',
         args: [
@@ -41,7 +34,21 @@ export function useWriteProposeNew() {
           proposal.calldatas,
           proposal.description,
         ],
+        address: DEFAULT_GOVERNOR_ADDRESS,
+        account: walletClientToUse?.account,
       });
+
+      console.log('Proposing with account:', walletClientToUse.account.address);
+      console.log('Proposal data:', {
+        targets: proposal.targets,
+        values: proposal.values,
+        signatures: proposal.signatures,
+        calldatas: proposal.calldatas,
+        description: proposal.description,
+      });
+
+      // Submit the proposal
+      const hash = await walletClientToUse.writeContract(request);
 
       console.log('📝 Proposal submitted:', hash);
       toast.loading('Waiting for transaction confirmation...');
@@ -70,6 +77,7 @@ export function useWriteProposeNew() {
       });
     },
     onError: (error) => {
+      console.error('Proposal error:', error);
       toast.error('❌ Error', {
         description: error instanceof Error ? error.message : 'Unknown error occurred',
       });
