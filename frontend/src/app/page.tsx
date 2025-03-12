@@ -56,7 +56,7 @@ export default function Home() {
 // Separate component for the proposal section
 function ProposalSection({ isConnected }: { isConnected: boolean }) {
   const { data: proposal, error } = useNewResponseFile();
-  const { proposeNew, isPending, isPendingConfirmation } = useWriteProposeNew();
+  const { mutate: proposeNew, isPending, isPendingConfirmation } = useWriteProposeNew();
 
   const handlePropose = () => {
     if (!proposal) {
