@@ -17,9 +17,129 @@
       "description": "Transfer 10.685m UNI to UF Treasury"
     },
     "report": {
-      "status": "success",
-      "summary": "Simulation completed successfully for proposal: \"Transfer 10.685m UNI to UF Treasury\". The transaction is ready to be proposed.",
-      "markdownReport": "# Title not found\n\n*Updated as of block [22034603](https://etherscan.io/block/22034603) at 3/12/2025, 9:15:47 PM ET*\n\n*   ID: 84\n*   Proposer: [`0xD73a92Be73EfbFcF3854433A5FcbAbF9c1316073`](https://etherscan.io/address/0xD73a92Be73EfbFcF3854433A5FcbAbF9c1316073)\n*   Start Block: 22034503 (3/12/2025, 8:55:47 PM ET)\n*   End Block: 22034504 (3/12/2025, 8:55:59 PM ET)\n*   Targets: [`0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984`](https://etherscan.io/address/0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984#code)\n\n## Table of contents\n\n*   [Proposal Text](#proposal-text)\n*   [Checks](#checks)\n    *   [Reports all state changes from the proposal ✅ Passed](#reports-all-state-changes-from-the-proposal-✅-passed)\n    *   [Decodes target calldata into a human-readable format ✅ Passed](#decodes-target-calldata-into-a-human-readable-format-✅-passed)\n    *   [Reports all events emitted from the proposal ✅ Passed](#reports-all-events-emitted-from-the-proposal-✅-passed)\n    *   [Check all targets are verified on Etherscan ✅ Passed](#check-all-targets-are-verified-on-etherscan-✅-passed)\n    *   [Check all touched contracts are verified on Etherscan ✅ Passed](#check-all-touched-contracts-are-verified-on-etherscan-✅-passed)\n    *   [Check all targets do not contain selfdestruct ✅ Passed](#check-all-targets-do-not-contain-selfdestruct-✅-passed)\n    *   [Check all touched contracts do not contain selfdestruct ❗❗ **Passed with warnings**](#check-all-touched-contracts-do-not-contain-selfdestruct-❗❗-passed-with-warnings)\n    *   [Reports on whether the caller needs to send ETH with the call ✅ Passed](#reports-on-whether-the-caller-needs-to-send-eth-with-the-call-✅-passed)\n    *   [Reports all ETH balance changes from the proposal ✅ Passed](#reports-all-eth-balance-changes-from-the-proposal-✅-passed)\n    *   [Runs solc against the verified contracts ✅ Passed](#runs-solc-against-the-verified-contracts-✅-passed)\n    *   [Runs slither against the verified contracts ✅ Passed](#runs-slither-against-the-verified-contracts-✅-passed)\n\n## Proposal Text\n\n> Transfer 10.685m UNI to UF Treasury\n\n## Checks\n\n### Reports all state changes from the proposal ✅ Passed\n\n**Info**:\n\n*   Uni (Uniswap) at `0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984`\n    *   `balances` key `0x1a9c8182c09f50c8318d769245bea52c32be35bc` changed from `\"399414882290000000009999999\"` to `\"388728897580000000009999999\"`\n    *   `balances` key `0xe571dc7a558bb6d68ffe264c3d7bb98b0c6c73fc` changed from `\"514276394464200000000000\"` to `\"11200261104464200000000000\"`\n    *   `balances` key `0x1a9c8182c09f50c8318d769245bea52c32be35bc` changed from `\"399414882290000000009999999\"` to `\"388728897580000000009999999\"`\n    *   `balances` key `0xe571dc7a558bb6d68ffe264c3d7bb98b0c6c73fc` changed from `\"514276394464200000000000\"` to `\"11200261104464200000000000\"`\n    *   `balances` key `0x1a9c8182c09f50c8318d769245bea52c32be35bc` changed from `\"399414882290000000009999999\"` to `\"388728897580000000009999999\"`\n    *   `balances` key `0xe571dc7a558bb6d68ffe264c3d7bb98b0c6c73fc` changed from `\"514276394464200000000000\"` to `\"11200261104464200000000000\"`\n    *   `balances` key `0x1a9c8182c09f50c8318d769245bea52c32be35bc` changed from `\"399414882290000000009999999\"` to `\"388728897580000000009999999\"`\n    *   `balances` key `0xe571dc7a558bb6d68ffe264c3d7bb98b0c6c73fc` changed from `\"514276394464200000000000\"` to `\"11200261104464200000000000\"`\n\n### Decodes target calldata into a human-readable format ✅ Passed\n\n**Info**:\n\n*   `0x1a9c8182c09f50c8318d769245bea52c32be35bc` transfers 10685984.71 UNI to `0xe571dC7A558bb6D68FfE264c3d7BB98B0C6C73fC` (formatted)\n\n### Reports all events emitted from the proposal ✅ Passed\n\n**Info**:\n\n*   Uni (Uniswap) at `0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984`\n    *   `Transfer(from: 0x1a9c8182c09f50c8318d769245bea52c32be35bc, to: 0xe571dc7a558bb6d68ffe264c3d7bb98b0c6c73fc, amount: 10685984710000000000000000)`\n    *   `Transfer(from: 0x1a9c8182c09f50c8318d769245bea52c32be35bc, to: 0xe571dc7a558bb6d68ffe264c3d7bb98b0c6c73fc, amount: 10685984710000000000000000)`\n\n### Check all targets are verified on Etherscan ✅ Passed\n\n**Info**:\n\n*   [`0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984`](https://etherscan.io/address/0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984): Contract (verified)\n\n### Check all touched contracts are verified on Etherscan ✅ Passed\n\n**Info**:\n\n*   [`0xD73a92Be73EfbFcF3854433A5FcbAbF9c1316073`](https://etherscan.io/address/0xD73a92Be73EfbFcF3854433A5FcbAbF9c1316073): EOA (verification not applicable)\n*   [`0x408ED6354d4973f66138C91495F2f2FCbd8724C3`](https://etherscan.io/address/0x408ED6354d4973f66138C91495F2f2FCbd8724C3): Contract (verified)\n*   [`0x53a328F4086d7C0F1Fa19e594c9b842125263026`](https://etherscan.io/address/0x53a328F4086d7C0F1Fa19e594c9b842125263026): Contract (verified)\n*   [`0x1a9C8182C09F50C8318d769245beA52c32BE35BC`](https://etherscan.io/address/0x1a9C8182C09F50C8318d769245beA52c32BE35BC): Contract (verified)\n*   [`0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984`](https://etherscan.io/address/0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984): Contract (verified)\n\n### Check all targets do not contain selfdestruct ✅ Passed\n\n**Info**:\n\n*   [`0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984`](https://etherscan.io/address/0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984): Contract (looks safe)\n\n### Check all touched contracts do not contain selfdestruct ❗❗ **Passed with warnings**\n\n**Warnings**:\n\n*   [`0xD73a92Be73EfbFcF3854433A5FcbAbF9c1316073`](https://etherscan.io/address/0xD73a92Be73EfbFcF3854433A5FcbAbF9c1316073): EOA (may have code later)\n\n**Info**:\n\n*   [`0x408ED6354d4973f66138C91495F2f2FCbd8724C3`](https://etherscan.io/address/0x408ED6354d4973f66138C91495F2f2FCbd8724C3): Trusted contract (not checked)\n*   [`0x53a328F4086d7C0F1Fa19e594c9b842125263026`](https://etherscan.io/address/0x53a328F4086d7C0F1Fa19e594c9b842125263026): Contract (looks safe)\n*   [`0x1a9C8182C09F50C8318d769245beA52c32BE35BC`](https://etherscan.io/address/0x1a9C8182C09F50C8318d769245beA52c32BE35BC): Trusted contract (not checked)\n*   [`0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984`](https://etherscan.io/address/0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984): Contract (looks safe)\n\n### Reports on whether the caller needs to send ETH with the call ✅ Passed\n\n**Info**:\n\nNo ETH is required to be sent by the account that executes this proposal.\n\n### Reports all ETH balance changes from the proposal ✅ Passed\n\n**Info**:\n\nNo ETH transfers detected\n\n### Runs solc against the verified contracts ✅ Passed\n\n**Info**:\n\nCompiler warnings for Uni (Uniswap) at `0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984`\n\n    /bin/sh: crytic-compile: command not found\n\n### Runs slither against the verified contracts ✅ Passed\n\n**Info**:\n\nSlither report for Uni (Uniswap) at `0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984`\n\n    /bin/sh: slither: command not found\n"
+      "status": "warning",
+      "summary": "Simulation completed with warnings for proposal: \"Title not found\".",
+      "markdownReport": "# Title not found\n\n*Updated as of block [22039296](https://etherscan.io/block/22039296) at 3/13/2025, 12:59:11 PM ET*\n\n*   ID: 84\n*   Proposer: [`0xD73a92Be73EfbFcF3854433A5FcbAbF9c1316073`](https://etherscan.io/address/0xD73a92Be73EfbFcF3854433A5FcbAbF9c1316073)\n*   Start Block: 22039196 (3/13/2025, 12:38:59 PM ET)\n*   End Block: 22039197 (3/13/2025, 12:39:11 PM ET)\n*   Targets: [`0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984`](https://etherscan.io/address/0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984#code)\n\n## Table of contents\n\n*   [Proposal Text](#proposal-text)\n*   [Checks](#checks)\n    *   [Reports all state changes from the proposal ✅ Passed](#reports-all-state-changes-from-the-proposal-✅-passed)\n    *   [Decodes target calldata into a human-readable format ✅ Passed](#decodes-target-calldata-into-a-human-readable-format-✅-passed)\n    *   [Reports all events emitted from the proposal ✅ Passed](#reports-all-events-emitted-from-the-proposal-✅-passed)\n    *   [Check all targets are verified on Etherscan ✅ Passed](#check-all-targets-are-verified-on-etherscan-✅-passed)\n    *   [Check all touched contracts are verified on Etherscan ✅ Passed](#check-all-touched-contracts-are-verified-on-etherscan-✅-passed)\n    *   [Check all targets do not contain selfdestruct ✅ Passed](#check-all-targets-do-not-contain-selfdestruct-✅-passed)\n    *   [Check all touched contracts do not contain selfdestruct ❗❗ **Passed with warnings**](#check-all-touched-contracts-do-not-contain-selfdestruct-❗❗-passed-with-warnings)\n    *   [Reports on whether the caller needs to send ETH with the call ✅ Passed](#reports-on-whether-the-caller-needs-to-send-eth-with-the-call-✅-passed)\n    *   [Reports all ETH balance changes from the proposal ✅ Passed](#reports-all-eth-balance-changes-from-the-proposal-✅-passed)\n    *   [Runs solc against the verified contracts ✅ Passed](#runs-solc-against-the-verified-contracts-✅-passed)\n    *   [Runs slither against the verified contracts ✅ Passed](#runs-slither-against-the-verified-contracts-✅-passed)\n\n## Proposal Text\n\n> Transfer 10.685m UNI to UF Treasury\n\n## Checks\n\n### Reports all state changes from the proposal ✅ Passed\n\n**Info**:\n\n*   Uni (Uniswap) at `0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984`\n    *   `balances` key `0x1a9c8182c09f50c8318d769245bea52c32be35bc` changed from `\"399414882290000000009999999\"` to `\"388728897580000000009999999\"`\n    *   `balances` key `0xe571dc7a558bb6d68ffe264c3d7bb98b0c6c73fc` changed from `\"514276394464200000000000\"` to `\"11200261104464200000000000\"`\n    *   `balances` key `0x1a9c8182c09f50c8318d769245bea52c32be35bc` changed from `\"399414882290000000009999999\"` to `\"388728897580000000009999999\"`\n    *   `balances` key `0xe571dc7a558bb6d68ffe264c3d7bb98b0c6c73fc` changed from `\"514276394464200000000000\"` to `\"11200261104464200000000000\"`\n    *   `balances` key `0x1a9c8182c09f50c8318d769245bea52c32be35bc` changed from `\"399414882290000000009999999\"` to `\"388728897580000000009999999\"`\n    *   `balances` key `0xe571dc7a558bb6d68ffe264c3d7bb98b0c6c73fc` changed from `\"514276394464200000000000\"` to `\"11200261104464200000000000\"`\n    *   `balances` key `0x1a9c8182c09f50c8318d769245bea52c32be35bc` changed from `\"399414882290000000009999999\"` to `\"388728897580000000009999999\"`\n    *   `balances` key `0xe571dc7a558bb6d68ffe264c3d7bb98b0c6c73fc` changed from `\"514276394464200000000000\"` to `\"11200261104464200000000000\"`\n\n### Decodes target calldata into a human-readable format ✅ Passed\n\n**Info**:\n\n*   `0x1a9c8182c09f50c8318d769245bea52c32be35bc` transfers 10685984.71 UNI to `0xe571dC7A558bb6D68FfE264c3d7BB98B0C6C73fC` (formatted)\n\n### Reports all events emitted from the proposal ✅ Passed\n\n**Info**:\n\n*   Uni (Uniswap) at `0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984`\n    *   `Transfer(from: 0x1a9c8182c09f50c8318d769245bea52c32be35bc, to: 0xe571dc7a558bb6d68ffe264c3d7bb98b0c6c73fc, amount: 10685984710000000000000000)`\n    *   `Transfer(from: 0x1a9c8182c09f50c8318d769245bea52c32be35bc, to: 0xe571dc7a558bb6d68ffe264c3d7bb98b0c6c73fc, amount: 10685984710000000000000000)`\n\n### Check all targets are verified on Etherscan ✅ Passed\n\n**Info**:\n\n*   [`0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984`](https://etherscan.io/address/0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984): Contract (verified)\n\n### Check all touched contracts are verified on Etherscan ✅ Passed\n\n**Info**:\n\n*   [`0xD73a92Be73EfbFcF3854433A5FcbAbF9c1316073`](https://etherscan.io/address/0xD73a92Be73EfbFcF3854433A5FcbAbF9c1316073): EOA (verification not applicable)\n*   [`0x408ED6354d4973f66138C91495F2f2FCbd8724C3`](https://etherscan.io/address/0x408ED6354d4973f66138C91495F2f2FCbd8724C3): Contract (verified)\n*   [`0x53a328F4086d7C0F1Fa19e594c9b842125263026`](https://etherscan.io/address/0x53a328F4086d7C0F1Fa19e594c9b842125263026): Contract (verified)\n*   [`0x1a9C8182C09F50C8318d769245beA52c32BE35BC`](https://etherscan.io/address/0x1a9C8182C09F50C8318d769245beA52c32BE35BC): Contract (verified)\n*   [`0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984`](https://etherscan.io/address/0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984): Contract (verified)\n\n### Check all targets do not contain selfdestruct ✅ Passed\n\n**Info**:\n\n*   [`0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984`](https://etherscan.io/address/0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984): Contract (looks safe)\n\n### Check all touched contracts do not contain selfdestruct ❗❗ **Passed with warnings**\n\n**Warnings**:\n\n*   [`0xD73a92Be73EfbFcF3854433A5FcbAbF9c1316073`](https://etherscan.io/address/0xD73a92Be73EfbFcF3854433A5FcbAbF9c1316073): EOA (may have code later)\n\n**Info**:\n\n*   [`0x408ED6354d4973f66138C91495F2f2FCbd8724C3`](https://etherscan.io/address/0x408ED6354d4973f66138C91495F2f2FCbd8724C3): Trusted contract (not checked)\n*   [`0x53a328F4086d7C0F1Fa19e594c9b842125263026`](https://etherscan.io/address/0x53a328F4086d7C0F1Fa19e594c9b842125263026): Contract (looks safe)\n*   [`0x1a9C8182C09F50C8318d769245beA52c32BE35BC`](https://etherscan.io/address/0x1a9C8182C09F50C8318d769245beA52c32BE35BC): Trusted contract (not checked)\n*   [`0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984`](https://etherscan.io/address/0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984): Contract (looks safe)\n\n### Reports on whether the caller needs to send ETH with the call ✅ Passed\n\n**Info**:\n\nNo ETH is required to be sent by the account that executes this proposal.\n\n### Reports all ETH balance changes from the proposal ✅ Passed\n\n**Info**:\n\nNo ETH transfers detected\n\n### Runs solc against the verified contracts ✅ Passed\n\n**Info**:\n\nCompiler warnings for Uni (Uniswap) at `0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984`\n\n    /bin/sh: crytic-compile: command not found\n\n### Runs slither against the verified contracts ✅ Passed\n\n**Info**:\n\nSlither report for Uni (Uniswap) at `0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984`\n\n    /bin/sh: slither: command not found\n",
+      "structuredReport": {
+        "title": "Title not found",
+        "proposalText": "Transfer 10.685m UNI to UF Treasury",
+        "status": "warning",
+        "summary": "Simulation completed with warnings for proposal: \"Title not found\".",
+        "checks": [
+          {
+            "title": "Reports all state changes from the proposal",
+            "status": "passed",
+            "details": "**Info**: - Uni (Uniswap) at `0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984`\n\n**Info**:     - `balances` key `0x1a9c8182c09f50c8318d769245bea52c32be35bc` changed from `\"399414882290000000009999999\"` to `\"388728897580000000009999999\"`\n\n**Info**:     - `balances` key `0xe571dc7a558bb6d68ffe264c3d7bb98b0c6c73fc` changed from `\"514276394464200000000000\"` to `\"11200261104464200000000000\"`\n\n**Info**:     - `balances` key `0x1a9c8182c09f50c8318d769245bea52c32be35bc` changed from `\"399414882290000000009999999\"` to `\"388728897580000000009999999\"`\n\n**Info**:     - `balances` key `0xe571dc7a558bb6d68ffe264c3d7bb98b0c6c73fc` changed from `\"514276394464200000000000\"` to `\"11200261104464200000000000\"`\n\n**Info**:     - `balances` key `0x1a9c8182c09f50c8318d769245bea52c32be35bc` changed from `\"399414882290000000009999999\"` to `\"388728897580000000009999999\"`\n\n**Info**:     - `balances` key `0xe571dc7a558bb6d68ffe264c3d7bb98b0c6c73fc` changed from `\"514276394464200000000000\"` to `\"11200261104464200000000000\"`\n\n**Info**:     - `balances` key `0x1a9c8182c09f50c8318d769245bea52c32be35bc` changed from `\"399414882290000000009999999\"` to `\"388728897580000000009999999\"`\n\n**Info**:     - `balances` key `0xe571dc7a558bb6d68ffe264c3d7bb98b0c6c73fc` changed from `\"514276394464200000000000\"` to `\"11200261104464200000000000\"`"
+          },
+          {
+            "title": "Decodes target calldata into a human-readable format",
+            "status": "passed",
+            "details": "**Info**: - `0x1a9c8182c09f50c8318d769245bea52c32be35bc` transfers 10685984.71 UNI to `0xe571dC7A558bb6D68FfE264c3d7BB98B0C6C73fC` (formatted)"
+          },
+          {
+            "title": "Reports all events emitted from the proposal",
+            "status": "passed",
+            "details": "**Info**: - Uni (Uniswap) at `0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984`\n\n**Info**:     - `Transfer(from: 0x1a9c8182c09f50c8318d769245bea52c32be35bc, to: 0xe571dc7a558bb6d68ffe264c3d7bb98b0c6c73fc, amount: 10685984710000000000000000)`\n\n**Info**:     - `Transfer(from: 0x1a9c8182c09f50c8318d769245bea52c32be35bc, to: 0xe571dc7a558bb6d68ffe264c3d7bb98b0c6c73fc, amount: 10685984710000000000000000)`"
+          },
+          {
+            "title": "Check all targets are verified on Etherscan",
+            "status": "passed",
+            "details": "**Info**: - [`0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984`](https://etherscan.io/address/0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984): Contract (verified)"
+          },
+          {
+            "title": "Check all touched contracts are verified on Etherscan",
+            "status": "passed",
+            "details": "**Info**: - [`0xD73a92Be73EfbFcF3854433A5FcbAbF9c1316073`](https://etherscan.io/address/0xD73a92Be73EfbFcF3854433A5FcbAbF9c1316073): EOA (verification not applicable)\n\n**Info**: - [`0x408ED6354d4973f66138C91495F2f2FCbd8724C3`](https://etherscan.io/address/0x408ED6354d4973f66138C91495F2f2FCbd8724C3): Contract (verified)\n\n**Info**: - [`0x53a328F4086d7C0F1Fa19e594c9b842125263026`](https://etherscan.io/address/0x53a328F4086d7C0F1Fa19e594c9b842125263026): Contract (verified)\n\n**Info**: - [`0x1a9C8182C09F50C8318d769245beA52c32BE35BC`](https://etherscan.io/address/0x1a9C8182C09F50C8318d769245beA52c32BE35BC): Contract (verified)\n\n**Info**: - [`0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984`](https://etherscan.io/address/0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984): Contract (verified)"
+          },
+          {
+            "title": "Check all targets do not contain selfdestruct",
+            "status": "passed",
+            "details": "**Info**: - [`0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984`](https://etherscan.io/address/0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984): Contract (looks safe)"
+          },
+          {
+            "title": "Check all touched contracts do not contain selfdestruct",
+            "status": "warning",
+            "details": "**Warning**: - [`0xD73a92Be73EfbFcF3854433A5FcbAbF9c1316073`](https://etherscan.io/address/0xD73a92Be73EfbFcF3854433A5FcbAbF9c1316073): EOA (may have code later)\n\n**Info**: - [`0x408ED6354d4973f66138C91495F2f2FCbd8724C3`](https://etherscan.io/address/0x408ED6354d4973f66138C91495F2f2FCbd8724C3): Trusted contract (not checked)\n\n**Info**: - [`0x53a328F4086d7C0F1Fa19e594c9b842125263026`](https://etherscan.io/address/0x53a328F4086d7C0F1Fa19e594c9b842125263026): Contract (looks safe)\n\n**Info**: - [`0x1a9C8182C09F50C8318d769245beA52c32BE35BC`](https://etherscan.io/address/0x1a9C8182C09F50C8318d769245beA52c32BE35BC): Trusted contract (not checked)\n\n**Info**: - [`0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984`](https://etherscan.io/address/0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984): Contract (looks safe)"
+          },
+          {
+            "title": "Reports on whether the caller needs to send ETH with the call",
+            "status": "passed",
+            "details": "**Info**: No ETH is required to be sent by the account that executes this proposal."
+          },
+          {
+            "title": "Reports all ETH balance changes from the proposal",
+            "status": "passed",
+            "details": "**Info**: No ETH transfers detected"
+          },
+          {
+            "title": "Runs solc against the verified contracts",
+            "status": "passed",
+            "details": "**Info**: Compiler warnings for Uni (Uniswap) at `0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984`\n\n**Info**: \n```\n/bin/sh: crytic-compile: command not found\n```\n"
+          },
+          {
+            "title": "Runs slither against the verified contracts",
+            "status": "passed",
+            "details": "**Info**: Slither report for Uni (Uniswap) at `0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984`\n\n**Info**: \n```\n/bin/sh: slither: command not found\n```\n"
+          }
+        ],
+        "stateChanges": [
+          {
+            "contract": "balances",
+            "key": "0x1a9c8182c09f50c8318d769245bea52c32be35bc",
+            "oldValue": "\"399414882290000000009999999\"",
+            "newValue": "\"388728897580000000009999999\""
+          },
+          {
+            "contract": "balances",
+            "key": "0xe571dc7a558bb6d68ffe264c3d7bb98b0c6c73fc",
+            "oldValue": "\"514276394464200000000000\"",
+            "newValue": "\"11200261104464200000000000\""
+          },
+          {
+            "contract": "balances",
+            "key": "0x1a9c8182c09f50c8318d769245bea52c32be35bc",
+            "oldValue": "\"399414882290000000009999999\"",
+            "newValue": "\"388728897580000000009999999\""
+          },
+          {
+            "contract": "balances",
+            "key": "0xe571dc7a558bb6d68ffe264c3d7bb98b0c6c73fc",
+            "oldValue": "\"514276394464200000000000\"",
+            "newValue": "\"11200261104464200000000000\""
+          },
+          {
+            "contract": "balances",
+            "key": "0x1a9c8182c09f50c8318d769245bea52c32be35bc",
+            "oldValue": "\"399414882290000000009999999\"",
+            "newValue": "\"388728897580000000009999999\""
+          },
+          {
+            "contract": "balances",
+            "key": "0xe571dc7a558bb6d68ffe264c3d7bb98b0c6c73fc",
+            "oldValue": "\"514276394464200000000000\"",
+            "newValue": "\"11200261104464200000000000\""
+          },
+          {
+            "contract": "balances",
+            "key": "0x1a9c8182c09f50c8318d769245bea52c32be35bc",
+            "oldValue": "\"399414882290000000009999999\"",
+            "newValue": "\"388728897580000000009999999\""
+          },
+          {
+            "contract": "balances",
+            "key": "0xe571dc7a558bb6d68ffe264c3d7bb98b0c6c73fc",
+            "oldValue": "\"514276394464200000000000\"",
+            "newValue": "\"11200261104464200000000000\""
+          }
+        ],
+        "events": [],
+        "metadata": {
+          "blockNumber": "22039296",
+          "timestamp": "1741885151",
+          "proposalId": "84",
+          "proposer": "0xD73a92Be73EfbFcF3854433A5FcbAbF9c1316073"
+        }
+      }
     }
   }
 ]

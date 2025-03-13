@@ -1,10 +1,6 @@
 'use client';
 
-import {
-  useSimulationResults,
-  useReportFromMarkdown,
-  useReportFromStructured,
-} from '@/hooks/use-simulation-results';
+import { useSimulationResults } from '@/hooks/use-simulation-results';
 import { useWriteProposeNew } from '@/hooks/use-write-propose-new';
 import { useAccount } from 'wagmi';
 import { Toaster } from '@/components/ui/sonner';
@@ -22,10 +18,10 @@ import {
 import { InfoIcon, AlertTriangleIcon, CheckCircleIcon } from 'lucide-react';
 import { ErrorBoundary } from 'react-error-boundary';
 import { ReportCard } from '@/components/ReportCard';
-import { MarkdownReport } from '@/components/MarkdownReport';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { StructuredReport } from '@/components/StructuredReport';
+import React from 'react';
 
 // Fallback component for when the query fails
 function ErrorFallback({ error }: { error: Error }) {
@@ -62,8 +58,6 @@ export default function Home() {
 // Separate component for the proposal section
 function ProposalSection({ isConnected }: { isConnected: boolean }) {
   const { data: simulationData, error: simulationError } = useSimulationResults();
-  const convertToReportFormat = useReportFromMarkdown();
-  const convertStructuredToReportFormat = useReportFromStructured();
   const { mutate: proposeNew, isPending, isPendingConfirmation } = useWriteProposeNew();
 
   const handlePropose = () => {
@@ -110,62 +104,35 @@ function ProposalSection({ isConnected }: { isConnected: boolean }) {
 
   const { proposalData, report } = simulationData;
 
-  // Convert the report to the format expected by ReportCard
-  // Prefer using the structured report if available
-  const formattedReport = report.structuredReport
-    ? convertStructuredToReportFormat(report.structuredReport)
-    : report.markdownReport
-      ? convertToReportFormat(report.markdownReport)
-      : {
-          status: report.status,
-          summary: report.summary,
-          gasUsed: '850,000',
-          findings: [],
-          stateChanges: [],
-          logs: [],
-        };
-
   // Show proposal and report if we have data
   return (
     <div className="w-full space-y-6">
       <div className="grid grid-cols-1 md:grid-cols-5 gap-6">
         {/* Proposal Card - Right on desktop, Top on mobile */}
-        <div className="md:col-span-2 md:order-2 order-1">
+        <div className="md:col-span-2 md:order-2 order-1 flex flex-col">
           <ProposalCard
             proposal={proposalData}
             onPropose={handlePropose}
             isPending={isPending}
             isPendingConfirmation={isPendingConfirmation}
             isConnected={isConnected}
+            className="md:sticky md:top-4 self-start"
           />
         </div>
 
         {/* Report Card - Left on desktop, Bottom on mobile */}
         <div className="md:col-span-3 md:order-1 order-2">
-          <Tabs defaultValue="overview" className="w-full">
-            <TabsList className="w-full grid grid-cols-2">
-              <TabsTrigger value="overview">Overview</TabsTrigger>
-              <TabsTrigger value="report">Report</TabsTrigger>
-            </TabsList>
-            <TabsContent value="overview">
-              <ReportCard report={formattedReport} />
-            </TabsContent>
-            <TabsContent value="report">
-              {report.structuredReport ? (
-                <StructuredReport report={report.structuredReport} />
-              ) : report.markdownReport ? (
-                <MarkdownReport markdownReport={report.markdownReport} />
-              ) : (
-                <Alert>
-                  <InfoIcon className="h-4 w-4" />
-                  <AlertTitle>No Report Available</AlertTitle>
-                  <AlertDescription>
-                    No detailed report is available for this simulation.
-                  </AlertDescription>
-                </Alert>
-              )}
-            </TabsContent>
-          </Tabs>
+          {report.structuredReport ? (
+            <StructuredReport report={report.structuredReport} />
+          ) : (
+            <Alert>
+              <InfoIcon className="h-4 w-4" />
+              <AlertTitle>No Report Available</AlertTitle>
+              <AlertDescription>
+                No detailed report is available for this simulation.
+              </AlertDescription>
+            </Alert>
+          )}
         </div>
       </div>
     </div>
@@ -178,59 +145,98 @@ function ProposalCard({
   isPending,
   isPendingConfirmation,
   isConnected,
+  className,
 }: {
   proposal: any;
   onPropose: () => void;
   isPending: boolean;
   isPendingConfirmation: boolean;
   isConnected: boolean;
+  className?: string;
 }) {
-  // Helper function to display empty values consistently
-  const displayValue = (value: string | string[]) => {
-    if (Array.isArray(value)) {
-      return value.length === 0 || (value.length === 1 && value[0] === '')
-        ? '(empty)'
-        : value.join(', ');
-    }
-    return value === '' ? '(empty)' : value;
-  };
+  // State to track which call is currently being viewed
+  const [selectedCallIndex, setSelectedCallIndex] = React.useState(0);
+
+  // Check if we have multiple calls
+  const hasMultipleCalls = proposal.targets.length > 1;
+
+  // Get the current call data
+  const currentTarget = hasMultipleCalls
+    ? proposal.targets[selectedCallIndex]
+    : proposal.targets[0];
+  const currentValue = hasMultipleCalls
+    ? proposal.values[selectedCallIndex].toString()
+    : proposal.values[0].toString();
+  const currentSignature = hasMultipleCalls
+    ? proposal.signatures[selectedCallIndex]
+    : proposal.signatures[0];
+  const currentCalldata = hasMultipleCalls
+    ? proposal.calldatas[selectedCallIndex]
+    : proposal.calldatas[0];
 
   return (
-    <Card className="w-full h-full">
-      <CardHeader>
+    <Card className={`w-full ${className || ''}`}>
+      <CardHeader className="px-6">
         <CardTitle>{proposal.description}</CardTitle>
         <CardDescription>Transaction Parameters</CardDescription>
       </CardHeader>
-      <CardContent className="space-y-4 pt-0">
+      <CardContent className="space-y-4 pt-0 px-6">
+        {hasMultipleCalls && (
+          <div className="mb-4">
+            <h3 className="font-medium text-sm mb-2">Select Call</h3>
+            <div className="flex flex-wrap gap-2">
+              {proposal.targets.map((_: string, index: number) => (
+                <Button
+                  key={`call-target-${proposal.targets[index]}-${index}`}
+                  variant={selectedCallIndex === index ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => setSelectedCallIndex(index)}
+                  className="cursor-pointer"
+                >
+                  Call {index + 1}
+                </Button>
+              ))}
+            </div>
+          </div>
+        )}
+
         <div>
-          <h3 className="font-medium text-sm mb-2">Target Contracts</h3>
+          <h3 className="font-medium text-sm mb-2">Target Contract</h3>
           <p className="font-mono text-sm break-all bg-muted p-3 rounded-md min-h-[40px] flex items-center">
-            {displayValue(proposal.targets)}
+            {currentTarget}
           </p>
         </div>
 
         <div>
-          <h3 className="font-medium text-sm mb-2">ETH Values</h3>
+          <h3 className="font-medium text-sm mb-2">ETH Value</h3>
           <p className="font-mono text-sm bg-muted p-3 rounded-md min-h-[40px] flex items-center">
-            {displayValue(proposal.values.map((v: bigint) => v.toString()))}
+            {currentValue}
           </p>
         </div>
 
         <div>
-          <h3 className="font-medium text-sm mb-2">Function Signatures</h3>
+          <h3 className="font-medium text-sm mb-2">Function Signature</h3>
           <p className="font-mono text-sm bg-muted p-3 rounded-md min-h-[40px] flex items-center">
-            {displayValue(proposal.signatures)}
+            {currentSignature || '(empty)'}
           </p>
         </div>
 
         <div>
           <h3 className="font-medium text-sm mb-2">Encoded Function Data</h3>
           <p className="font-mono text-sm break-all bg-muted p-3 rounded-md min-h-[40px] flex items-center">
-            {displayValue(proposal.calldatas)}
+            {currentCalldata}
           </p>
         </div>
+
+        {hasMultipleCalls && (
+          <div className="mt-4 pt-4 border-t">
+            <p className="text-sm text-muted-foreground">
+              Showing call {selectedCallIndex + 1} of {proposal.targets.length}
+            </p>
+          </div>
+        )}
       </CardContent>
-      <CardFooter className="flex justify-between items-center border-t py-4 mt-auto">
+      <CardFooter className="flex justify-between items-center border-t py-4 px-6 mt-auto">
         <div className="flex items-center text-sm text-muted-foreground">
           <CheckCircleIcon className="h-4 w-4 mr-2 text-green-500" />
           Ready to propose

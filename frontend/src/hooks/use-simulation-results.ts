@@ -1,5 +1,5 @@
 import type { Address } from 'viem';
-import { useSuspenseQuery } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import type { Report } from '@/components/ReportCard';
 import { useCallback } from 'react';
 
@@ -65,12 +65,18 @@ export interface StructuredSimulationReport {
 }
 
 export interface SimulationResponse {
-  proposalData: Proposal;
+  proposalData: {
+    targets: string[];
+    values: string[];
+    signatures: string[];
+    calldatas: string[];
+    description: string;
+  };
   report: {
+    structuredReport?: StructuredSimulationReport;
+    markdownReport: string;
     status: 'success' | 'warning' | 'error';
     summary: string;
-    markdownReport: string;
-    structuredReport?: StructuredSimulationReport;
   };
 }
 
@@ -78,34 +84,40 @@ export interface SimulationResponse {
  * Hook to fetch simulation results from the API
  */
 export function useSimulationResults() {
-  return useSuspenseQuery<SimulationResponse>({
-    queryKey: ['simulation-results'],
+  return useQuery<SimulationResponse, Error>({
+    queryKey: ['simulationResults'],
     queryFn: async () => {
-      const response = await fetch('/api/simulation-results');
-
+      const response = await fetch('/simulation-results.json');
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to fetch simulation data');
+        throw new Error('Failed to fetch simulation results');
       }
 
       const data = await response.json();
+      console.log('Simulation results:', data); // Log the data to see its structure
 
-      // Get the first item from the array
-      const firstResult = data[0];
+      // The data is an array of results
+      if (data && data.length > 0) {
+        const result = data[0];
+        console.log('First result:', result); // Log the first result
+        console.log('Report:', result.report); // Log the report
+        console.log('Structured report:', result.report.structuredReport); // Log the structured report
 
-      if (!firstResult) {
-        throw new Error('No simulation results found');
+        // Convert values to BigInt-compatible strings
+        if (result.proposalData?.values) {
+          result.proposalData.values = result.proposalData.values.map((value: any) =>
+            typeof value === 'string' ? value : value.toString(),
+          );
+        }
+
+        return {
+          proposalData: result.proposalData,
+          report: result.report,
+        };
       }
 
-      // Convert string values to BigInt for the proposal data
-      return {
-        proposalData: {
-          ...firstResult.proposalData,
-          values: firstResult.proposalData.values.map((value: string) => BigInt(value)),
-        },
-        report: firstResult.report,
-      };
+      throw new Error('No simulation results found');
     },
+    retry: false,
   });
 }
 
@@ -237,7 +249,7 @@ export function useReportFromStructured() {
  * Hook to fetch the structured simulation report from the API
  */
 export function useStructuredReport() {
-  return useSuspenseQuery<{
+  return useQuery<{
     proposalData: Proposal;
     report: {
       status: 'success' | 'warning' | 'error';

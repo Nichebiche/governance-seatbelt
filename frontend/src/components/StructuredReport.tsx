@@ -1,9 +1,16 @@
-import React from 'react';
+import React, { useState } from 'react';
 import Link from 'next/link';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
-import { CheckCircleIcon, AlertTriangleIcon, InfoIcon, ExternalLinkIcon } from 'lucide-react';
+import {
+  CheckCircleIcon,
+  AlertTriangleIcon,
+  InfoIcon,
+  ExternalLinkIcon,
+  ChevronDownIcon,
+  ChevronUpIcon,
+} from 'lucide-react';
 import type {
   StructuredSimulationReport,
   SimulationCheck,
@@ -17,18 +24,25 @@ interface StructuredReportProps {
 
 export function StructuredReport({ report }: StructuredReportProps) {
   return (
-    <Card className="w-full">
-      <CardHeader>
-        <CardTitle>{report.title}</CardTitle>
-        <CardDescription>
-          Status:{' '}
-          <span
+    <div className="w-full">
+      <div className="mb-6">
+        <h2 className="text-2xl font-bold">{report.title}</h2>
+        <div className="flex items-center mt-2">
+          <span className="text-muted-foreground mr-2">Status:</span>
+          <Badge
+            variant={
+              report.status === 'success'
+                ? 'outline'
+                : report.status === 'warning'
+                  ? 'outline'
+                  : 'destructive'
+            }
             className={
               report.status === 'success'
-                ? 'text-green-500'
+                ? 'bg-green-100 text-green-800 border-green-300'
                 : report.status === 'warning'
-                  ? 'text-yellow-500'
-                  : 'text-red-500'
+                  ? 'bg-yellow-100 text-yellow-800 border-yellow-300'
+                  : ''
             }
           >
             {report.status === 'success'
@@ -36,136 +50,115 @@ export function StructuredReport({ report }: StructuredReportProps) {
               : report.status === 'warning'
                 ? 'Passed with warnings'
                 : 'Failed'}
-          </span>
-        </CardDescription>
-      </CardHeader>
+          </Badge>
+        </div>
+        <p className="text-muted-foreground mt-2">{report.summary}</p>
+      </div>
+
       <Tabs defaultValue="overview" className="w-full">
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-3 mb-4">
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="checks">Checks</TabsTrigger>
           <TabsTrigger value="state-changes">State Changes</TabsTrigger>
-          <TabsTrigger value="events">Events</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="overview">
-          <CardContent>
-            <div className="space-y-4">
-              {report.proposalText && (
-                <div>
-                  <h3 className="text-lg font-semibold mb-2">Proposal Details</h3>
-                  <div className="bg-muted p-4 rounded-md whitespace-pre-wrap">
-                    {report.proposalText}
-                  </div>
-                </div>
-              )}
+        <TabsContent value="overview" className="mt-4 space-y-6">
+          {report.proposalText && (
+            <div className="border border-muted rounded-md p-6 bg-card">
+              <h3 className="text-lg font-semibold mb-3">Proposal Details</h3>
+              <div className="bg-muted p-4 rounded-md whitespace-pre-wrap">
+                {report.proposalText}
+              </div>
+            </div>
+          )}
 
-              {report.calldata && (
-                <div>
-                  <h3 className="text-lg font-semibold mb-2">Calldata Decoded</h3>
-                  <div className="bg-muted p-4 rounded-md font-mono text-sm overflow-x-auto">
-                    {report.calldata.decoded}
-                  </div>
-                </div>
-              )}
+          {report.calldata && (
+            <div className="border border-muted rounded-md p-6 bg-card">
+              <h3 className="text-lg font-semibold mb-3">Calldata Decoded</h3>
+              <div className="bg-muted p-4 rounded-md font-mono text-sm overflow-x-auto">
+                {report.calldata.decoded}
+              </div>
+            </div>
+          )}
 
-              <div>
-                <h3 className="text-lg font-semibold mb-2">Metadata</h3>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="bg-muted p-3 rounded-md">
-                    <div className="text-sm text-muted-foreground">Block Number</div>
-                    <div className="font-medium">{report.metadata.blockNumber}</div>
-                  </div>
-                  <div className="bg-muted p-3 rounded-md">
-                    <div className="text-sm text-muted-foreground">Timestamp</div>
-                    <div className="font-medium">
-                      {new Date(parseInt(report.metadata.timestamp) * 1000).toLocaleString()}
-                    </div>
-                  </div>
-                  <div className="bg-muted p-3 rounded-md">
-                    <div className="text-sm text-muted-foreground">Proposal ID</div>
-                    <div className="font-medium">{report.metadata.proposalId}</div>
-                  </div>
-                  <div className="bg-muted p-3 rounded-md">
-                    <div className="text-sm text-muted-foreground">Proposer</div>
-                    <div className="font-medium font-mono text-xs truncate">
-                      <a
-                        href={`https://etherscan.io/address/${report.metadata.proposer}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-blue-600 hover:underline inline-flex items-center"
-                      >
-                        {report.metadata.proposer}
-                        <ExternalLinkIcon className="h-3 w-3 ml-1" />
-                      </a>
-                    </div>
-                  </div>
+          <div className="border border-muted rounded-md p-6 bg-card">
+            <h3 className="text-lg font-semibold mb-3">Metadata</h3>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="bg-muted p-3 rounded-md">
+                <div className="text-sm text-muted-foreground">Block Number</div>
+                <div className="font-medium">{report.metadata.blockNumber}</div>
+              </div>
+              <div className="bg-muted p-3 rounded-md">
+                <div className="text-sm text-muted-foreground">Timestamp</div>
+                <div className="font-medium">
+                  {new Date(Number.parseInt(report.metadata.timestamp) * 1000).toLocaleString()}
+                </div>
+              </div>
+              <div className="bg-muted p-3 rounded-md">
+                <div className="text-sm text-muted-foreground">Proposal ID</div>
+                <div className="font-medium">{report.metadata.proposalId}</div>
+              </div>
+              <div className="bg-muted p-3 rounded-md">
+                <div className="text-sm text-muted-foreground">Proposer</div>
+                <div className="font-medium font-mono text-xs truncate">
+                  <a
+                    href={`https://etherscan.io/address/${report.metadata.proposer}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-blue-600 hover:underline inline-flex items-center cursor-pointer"
+                  >
+                    {report.metadata.proposer}
+                    <ExternalLinkIcon className="h-3 w-3 ml-1" />
+                  </a>
                 </div>
               </div>
             </div>
-          </CardContent>
+          </div>
         </TabsContent>
 
-        <TabsContent value="checks">
-          <CardContent>
-            <div className="space-y-4">
-              {report.checks.length === 0 ? (
-                <div className="flex items-center justify-center p-6 text-muted-foreground">
-                  <InfoIcon className="h-4 w-4 mr-2" />
-                  <span>No checks found in the report</span>
-                </div>
-              ) : (
-                report.checks.map((check, index) => (
-                  <CheckItem key={`check-${index}`} check={check} />
-                ))
-              )}
-            </div>
-          </CardContent>
+        <TabsContent value="checks" className="mt-4">
+          <div className="space-y-4">
+            {report.checks.length === 0 ? (
+              <div className="flex items-center justify-center p-6 text-muted-foreground border border-muted rounded-md">
+                <InfoIcon className="h-4 w-4 mr-2" />
+                <span>No checks found in the report</span>
+              </div>
+            ) : (
+              report.checks.map((check, index) => (
+                <ExpandableCheckItem key={`check-${check.title}-${index}`} check={check} />
+              ))
+            )}
+          </div>
         </TabsContent>
 
-        <TabsContent value="state-changes">
-          <CardContent>
-            <div className="space-y-4">
-              {report.stateChanges.length === 0 ? (
-                <div className="flex items-center justify-center p-6 text-muted-foreground">
-                  <InfoIcon className="h-4 w-4 mr-2" />
-                  <span>No state changes found in the report</span>
-                </div>
-              ) : (
-                <div className="space-y-2">
-                  {report.stateChanges.map((change, index) => (
-                    <StateChangeItem key={`state-${index}`} stateChange={change} />
-                  ))}
-                </div>
-              )}
-            </div>
-          </CardContent>
-        </TabsContent>
-
-        <TabsContent value="events">
-          <CardContent>
-            <div className="space-y-4">
-              {report.events.length === 0 ? (
-                <div className="flex items-center justify-center p-6 text-muted-foreground">
-                  <InfoIcon className="h-4 w-4 mr-2" />
-                  <span>No events found in the report</span>
-                </div>
-              ) : (
-                <div className="space-y-2">
-                  {report.events.map((event, index) => (
-                    <EventItem key={`event-${index}`} event={event} />
-                  ))}
-                </div>
-              )}
-            </div>
-          </CardContent>
+        <TabsContent value="state-changes" className="mt-4">
+          <div className="space-y-4">
+            {report.stateChanges.length === 0 ? (
+              <div className="flex items-center justify-center p-6 text-muted-foreground border border-muted rounded-md">
+                <InfoIcon className="h-4 w-4 mr-2" />
+                <span>No state changes found in the report</span>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {report.stateChanges.map((change, index) => (
+                  <StateChangeItem
+                    key={`state-${change.contract}-${change.key}-${index}`}
+                    stateChange={change}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
         </TabsContent>
       </Tabs>
-    </Card>
+    </div>
   );
 }
 
 // Helper components
-function CheckItem({ check }: { check: SimulationCheck }) {
+function ExpandableCheckItem({ check }: { check: SimulationCheck }) {
+  const [isExpanded, setIsExpanded] = useState(false);
+
   const getStatusIcon = () => {
     if (check.status === 'warning') {
       return <AlertTriangleIcon className="h-5 w-5 text-yellow-500" />;
@@ -194,18 +187,35 @@ function CheckItem({ check }: { check: SimulationCheck }) {
     );
   };
 
+  const toggleExpanded = () => {
+    setIsExpanded(!isExpanded);
+  };
+
   return (
-    <div className="border rounded-md p-4">
-      <div className="flex justify-between items-start">
+    <div className="border border-muted rounded-md overflow-hidden">
+      <button
+        type="button"
+        className="w-full p-4 text-left hover:bg-muted/50 transition-colors cursor-pointer flex justify-between items-start"
+        onClick={toggleExpanded}
+        aria-expanded={isExpanded}
+      >
         <div className="flex items-start gap-2">
           {getStatusIcon()}
           <h4 className="font-medium">{check.title}</h4>
         </div>
-        {getStatusBadge()}
-      </div>
-      {check.details && (
-        <div className="mt-2 pl-7 text-sm text-muted-foreground whitespace-pre-wrap">
-          {check.details}
+        <div className="flex items-center gap-2">
+          {getStatusBadge()}
+          {check.details &&
+            (isExpanded ? (
+              <ChevronUpIcon className="h-4 w-4 text-muted-foreground" />
+            ) : (
+              <ChevronDownIcon className="h-4 w-4 text-muted-foreground" />
+            ))}
+        </div>
+      </button>
+      {isExpanded && check.details && (
+        <div className="p-5 pt-0 pl-11 text-sm border-t border-muted bg-muted/10">
+          <div className="mt-4 whitespace-pre-wrap">{check.details}</div>
         </div>
       )}
     </div>
@@ -213,48 +223,52 @@ function CheckItem({ check }: { check: SimulationCheck }) {
 }
 
 function StateChangeItem({ stateChange }: { stateChange: SimulationStateChange }) {
-  return (
-    <div className="bg-muted p-3 rounded-md text-sm">
-      <div className="font-medium">{stateChange.contract}</div>
-      <div className="mt-1">
-        <span className="text-muted-foreground">Key: </span>
-        <code className="text-xs bg-muted-foreground/20 px-1 py-0.5 rounded">
-          {stateChange.key}
-        </code>
-      </div>
-      <div className="mt-1 grid grid-cols-2 gap-2">
-        <div>
-          <span className="text-muted-foreground">Old: </span>
-          <span className="font-mono text-xs break-all">{stateChange.oldValue}</span>
-        </div>
-        <div>
-          <span className="text-muted-foreground">New: </span>
-          <span className="font-mono text-xs break-all">{stateChange.newValue}</span>
-        </div>
-      </div>
-    </div>
-  );
-}
+  const [isExpanded, setIsExpanded] = useState(false);
 
-function EventItem({ event }: { event: SimulationEvent }) {
+  const toggleExpanded = () => {
+    setIsExpanded(!isExpanded);
+  };
+
   return (
-    <div className="bg-muted p-3 rounded-md text-sm">
-      <div className="font-medium">{event.contract}</div>
-      <div className="mt-1">
-        <span className="text-muted-foreground">Event: </span>
-        <code className="text-xs bg-muted-foreground/20 px-1 py-0.5 rounded">{event.name}</code>
-      </div>
-      <div className="mt-1">
-        <span className="text-muted-foreground">Parameters: </span>
-        <div className="font-mono text-xs mt-1 break-all">
-          {event.params.map((param, index) => (
-            <div key={`param-${index}`} className="mb-1">
-              <span className="text-muted-foreground">{param.name}: </span>
-              {param.value}
-            </div>
-          ))}
+    <div className="border border-muted rounded-md overflow-hidden">
+      <button
+        type="button"
+        className="w-full p-4 text-left hover:bg-muted/50 transition-colors cursor-pointer flex justify-between items-start"
+        onClick={toggleExpanded}
+        aria-expanded={isExpanded}
+      >
+        <div className="flex items-start gap-2">
+          <div className="font-medium">{stateChange.contract}</div>
         </div>
-      </div>
+        <div className="flex items-center gap-2">
+          <code className="text-xs bg-muted-foreground/20 px-1 py-0.5 rounded">
+            {stateChange.key}
+          </code>
+          {isExpanded ? (
+            <ChevronUpIcon className="h-4 w-4 text-muted-foreground" />
+          ) : (
+            <ChevronDownIcon className="h-4 w-4 text-muted-foreground" />
+          )}
+        </div>
+      </button>
+      {isExpanded && (
+        <div className="p-5 pt-0 pl-11 text-sm border-t border-muted bg-muted/10">
+          <div className="mt-4 grid grid-cols-2 gap-4">
+            <div>
+              <span className="text-muted-foreground font-medium">Old Value: </span>
+              <div className="font-mono text-xs break-all mt-2 bg-muted p-3 rounded">
+                {stateChange.oldValue}
+              </div>
+            </div>
+            <div>
+              <span className="text-muted-foreground font-medium">New Value: </span>
+              <div className="font-mono text-xs break-all mt-2 bg-muted p-3 rounded">
+                {stateChange.newValue}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
