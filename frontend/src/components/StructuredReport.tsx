@@ -19,6 +19,84 @@ import type {
   SimulationEvent,
 } from '@/hooks/use-simulation-results';
 
+// Create a new StateChanges component for reuse
+interface StateChangesProps {
+  stateChanges: SimulationStateChange[];
+}
+
+function StateChanges({ stateChanges }: StateChangesProps) {
+  if (stateChanges.length === 0) {
+    return (
+      <div className="flex items-center justify-center p-6 text-muted-foreground border border-muted rounded-md">
+        <InfoIcon className="h-4 w-4 mr-2" />
+        <span>No state changes found in the report</span>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      {/* Group state changes by contract */}
+      {Object.entries(
+        stateChanges.reduce<Record<string, SimulationStateChange[]>>((acc, change) => {
+          // Contract always exists on change but may be generic
+          const contractName = change.contract;
+
+          // We'll keep the original contract name in the key for grouping
+          const key = `${contractName}|${change.contractAddress || ''}`;
+
+          if (!acc[key]) {
+            acc[key] = [];
+          }
+          acc[key].push(change);
+          return acc;
+        }, {}),
+      ).map(([contractKey, changes]) => {
+        const [contractName, contractAddress] = contractKey.split('|');
+        return (
+          <div key={contractKey} className="space-y-3">
+            {/* Contract header */}
+            <div className="flex items-center gap-2 mb-2">
+              <h3 className="text-lg font-semibold">
+                {contractName === 'balances'
+                  ? 'Token Balances'
+                  : contractName === 'storage'
+                    ? 'Contract Storage'
+                    : contractName === 'code'
+                      ? 'Contract Code'
+                      : contractName}
+                {contractAddress && (
+                  <span className="ml-2 text-sm font-normal">
+                    at{' '}
+                    <a
+                      href={`https://etherscan.io/address/${contractAddress}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="font-mono text-xs bg-muted-foreground/10 px-1 py-0.5 rounded hover:underline inline-flex items-center"
+                    >
+                      {contractAddress}
+                      <ExternalLinkIcon className="h-3 w-3 ml-1" />
+                    </a>
+                  </span>
+                )}
+              </h3>
+            </div>
+            {/* State changes for this contract */}
+            <div className="space-y-3 pl-2">
+              {changes.map((change, index) => (
+                <StateChangeItem
+                  key={`state-${change.contract}-${change.key}-${index}`}
+                  stateChange={change}
+                />
+              ))}
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 interface StructuredReportProps {
   report: StructuredSimulationReport;
 }
@@ -136,7 +214,11 @@ export function StructuredReport({ report }: StructuredReportProps) {
                 </div>
               ) : (
                 report.checks.map((check, index) => (
-                  <ExpandableCheckItem key={`check-${check.title}-${index}`} check={check} />
+                  <ExpandableCheckItem
+                    key={`check-${check.title}-${index}`}
+                    check={check}
+                    stateChanges={report.stateChanges}
+                  />
                 ))
               )}
             </div>
@@ -147,75 +229,7 @@ export function StructuredReport({ report }: StructuredReportProps) {
             className="mt-4 absolute inset-0 overflow-y-auto pb-8 px-1"
           >
             <div className="space-y-4">
-              {report.stateChanges.length === 0 ? (
-                <div className="flex items-center justify-center p-6 text-muted-foreground border border-muted rounded-md">
-                  <InfoIcon className="h-4 w-4 mr-2" />
-                  <span>No state changes found in the report</span>
-                </div>
-              ) : (
-                <div className="space-y-6">
-                  {/* Group state changes by contract */}
-                  {Object.entries(
-                    report.stateChanges.reduce<Record<string, SimulationStateChange[]>>(
-                      (acc, change) => {
-                        // Contract always exists on change but may be generic
-                        const contractName = change.contract;
-
-                        // We'll keep the original contract name in the key for grouping
-                        const key = `${contractName}|${change.contractAddress || ''}`;
-
-                        if (!acc[key]) {
-                          acc[key] = [];
-                        }
-                        acc[key].push(change);
-                        return acc;
-                      },
-                      {},
-                    ),
-                  ).map(([contractKey, changes]) => {
-                    const [contractName, contractAddress] = contractKey.split('|');
-                    return (
-                      <div key={contractKey} className="space-y-3">
-                        {/* Contract header */}
-                        <div className="flex items-center gap-2 mb-2">
-                          <h3 className="text-lg font-semibold">
-                            {contractName === 'balances'
-                              ? 'Token Balances'
-                              : contractName === 'storage'
-                                ? 'Contract Storage'
-                                : contractName === 'code'
-                                  ? 'Contract Code'
-                                  : contractName}
-                            {contractAddress && (
-                              <span className="ml-2 text-sm font-normal">
-                                at{' '}
-                                <a
-                                  href={`https://etherscan.io/address/${contractAddress}`}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="font-mono text-xs bg-muted-foreground/10 px-1 py-0.5 rounded hover:underline inline-flex items-center"
-                                >
-                                  {contractAddress}
-                                  <ExternalLinkIcon className="h-3 w-3 ml-1" />
-                                </a>
-                              </span>
-                            )}
-                          </h3>
-                        </div>
-                        {/* State changes for this contract */}
-                        <div className="space-y-3 pl-2">
-                          {changes.map((change, index) => (
-                            <StateChangeItem
-                              key={`state-${change.contract}-${change.key}-${index}`}
-                              stateChange={change}
-                            />
-                          ))}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
+              <StateChanges stateChanges={report.stateChanges} />
             </div>
           </TabsContent>
         </div>
@@ -225,7 +239,10 @@ export function StructuredReport({ report }: StructuredReportProps) {
 }
 
 // Helper components
-function ExpandableCheckItem({ check }: { check: SimulationCheck }) {
+function ExpandableCheckItem({
+  check,
+  stateChanges,
+}: { check: SimulationCheck; stateChanges?: SimulationStateChange[] }) {
   const [isExpanded, setIsExpanded] = useState(false);
 
   const getStatusIcon = () => {
@@ -263,46 +280,6 @@ function ExpandableCheckItem({ check }: { check: SimulationCheck }) {
   // Check if this is a state changes check
   const isStateChangesCheck = check.title.toLowerCase().includes('state changes');
 
-  // Parse state changes from the details if this is a state changes check
-  const parseStateChanges = (details?: string) => {
-    if (!details || !isStateChangesCheck) return [];
-
-    const stateChanges: SimulationStateChange[] = [];
-    const lines = details.split('\n');
-
-    let currentContract = '';
-    let currentContractAddress = '';
-
-    for (let i = 0; i < lines.length; i++) {
-      const line = lines[i];
-
-      // Extract contract name and address
-      if (line.includes('at `0x')) {
-        const match = line.match(/(.+) at `(0x[a-fA-F0-9]{40})`/);
-        if (match) {
-          currentContract = match[1].trim();
-          currentContractAddress = match[2];
-        }
-      }
-
-      // Extract state changes
-      if (line.includes('key `') && line.includes('changed from')) {
-        const keyMatch = line.match(/`(.+)` changed from `(.+)` to `(.+)`/);
-        if (keyMatch && currentContract) {
-          stateChanges.push({
-            contract: currentContract,
-            contractAddress: currentContractAddress,
-            key: keyMatch[1],
-            oldValue: keyMatch[2],
-            newValue: keyMatch[3],
-          });
-        }
-      }
-    }
-
-    return stateChanges;
-  };
-
   // Format the details content as React components
   const FormattedDetails = useMemo(() => {
     if (!check.details) return null;
@@ -332,6 +309,10 @@ function ExpandableCheckItem({ check }: { check: SimulationCheck }) {
 
     // Split by lines to process each line
     const lines = cleanedDetails.split('\n').filter((line) => line.trim() !== '');
+
+    if (isStateChangesCheck) {
+      return stateChanges ? <StateChanges stateChanges={stateChanges} /> : null;
+    }
 
     return (
       <>
@@ -579,10 +560,7 @@ function ExpandableCheckItem({ check }: { check: SimulationCheck }) {
         })}
       </>
     );
-  }, [check.details]);
-
-  const stateChanges = parseStateChanges(check.details);
-  const hasStateChanges = stateChanges.length > 0;
+  }, [check.details, isStateChangesCheck, stateChanges]);
 
   return (
     <div className="border border-muted rounded-md overflow-hidden">
@@ -608,66 +586,16 @@ function ExpandableCheckItem({ check }: { check: SimulationCheck }) {
       </button>
       {isExpanded && check.details && (
         <div className="p-5 pt-0 pl-11 text-sm border-t border-muted bg-muted/10">
-          {hasStateChanges ? (
-            <div className="mt-4 space-y-6">
-              {/* Group state changes by contract */}
-              {Object.entries(
-                stateChanges.reduce<Record<string, SimulationStateChange[]>>((acc, change) => {
-                  // Contract always exists on change but may be generic
-                  const contractName = change.contract;
-
-                  // We'll keep the original contract name in the key for grouping
-                  const contractAddress = change.contractAddress || '';
-                  const key = `${contractName}|${contractAddress}`;
-
-                  if (!acc[key]) {
-                    acc[key] = [];
-                  }
-                  acc[key].push(change);
-                  return acc;
-                }, {}),
-              ).map(([contractKey, changes]) => {
-                const [contractName, contractAddress] = contractKey.split('|');
-                return (
-                  <div key={contractKey} className="space-y-3">
-                    {/* Contract header */}
-                    <div className="flex items-center gap-2 mb-2">
-                      <h3 className="text-lg font-semibold">
-                        {contractName === 'balances'
-                          ? 'Token Balances'
-                          : contractName === 'storage'
-                            ? 'Contract Storage'
-                            : contractName === 'code'
-                              ? 'Contract Code'
-                              : contractName}
-                        {contractAddress && (
-                          <span className="ml-2 text-sm font-normal">
-                            at{' '}
-                            <a
-                              href={`https://etherscan.io/address/${contractAddress}`}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="font-mono text-xs bg-muted-foreground/10 px-1 py-0.5 rounded hover:underline inline-flex items-center"
-                            >
-                              {contractAddress}
-                              <ExternalLinkIcon className="h-3 w-3 ml-1" />
-                            </a>
-                          </span>
-                        )}
-                      </h3>
-                    </div>
-                    {/* State changes for this contract */}
-                    <div className="space-y-3 pl-2">
-                      {changes.map((change, index) => (
-                        <StateChangeItem
-                          key={`check-state-${change.contract}-${change.key}-${index}`}
-                          stateChange={change}
-                        />
-                      ))}
-                    </div>
-                  </div>
-                );
-              })}
+          {isStateChangesCheck ? (
+            <div className="mt-4">
+              {stateChanges ? (
+                <StateChanges stateChanges={stateChanges} />
+              ) : (
+                <div className="flex items-center justify-center p-6 text-muted-foreground">
+                  <InfoIcon className="h-4 w-4 mr-2" />
+                  <span>No state changes available</span>
+                </div>
+              )}
             </div>
           ) : (
             <div className="mt-4 whitespace-pre-wrap">{FormattedDetails}</div>
