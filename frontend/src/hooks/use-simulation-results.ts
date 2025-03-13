@@ -12,12 +12,65 @@ export interface Proposal {
   description: string;
 }
 
+export interface SimulationCheck {
+  title: string;
+  status: 'passed' | 'warning' | 'failed';
+  details?: string;
+}
+
+export interface SimulationStateChange {
+  contract: string;
+  contractAddress?: string;
+  key: string;
+  oldValue: string;
+  newValue: string;
+}
+
+export interface SimulationEvent {
+  name: string;
+  contract: string;
+  contractAddress?: string;
+  params: Array<{
+    name: string;
+    value: string;
+    type: string;
+  }>;
+}
+
+export interface SimulationCalldata {
+  decoded: string;
+  raw: string;
+  links?: Array<{
+    text: string;
+    address: string;
+    href: string;
+  }>;
+}
+
+export interface StructuredSimulationReport {
+  title: string;
+  proposalText: string;
+  status: 'success' | 'warning' | 'error';
+  summary: string;
+  checks: SimulationCheck[];
+  stateChanges: SimulationStateChange[];
+  events: SimulationEvent[];
+  calldata?: SimulationCalldata;
+  metadata: {
+    blockNumber: string;
+    timestamp: string;
+    proposalId: string;
+    proposer: string;
+  };
+}
+
 export interface SimulationResponse {
   proposalData: Proposal;
   report: {
     status: 'success' | 'warning' | 'error';
     summary: string;
     markdownReport: string;
+    structuredReport?: StructuredSimulationReport;
   };
 }
 
@@ -123,6 +176,58 @@ export function useReportFromMarkdown() {
         }
       }
     }
+
+    return report;
+  }, []);
+}
+
+/**
+ * Helper function to convert the structured report to a Report object
+ * that can be used with the ReportCard component
+ */
+export function useReportFromStructured() {
+  return useCallback((structuredReport: StructuredSimulationReport): Report => {
+    // Create a report structure from the structured report
+    const report: Report = {
+      status: structuredReport.status,
+      summary: structuredReport.summary,
+      gasUsed: '850,000', // This is a placeholder as it's not in the structured report
+      findings: [],
+      stateChanges: [],
+      logs: [],
+    };
+
+    // Convert checks to findings
+    report.findings = structuredReport.checks.map((check, index) => {
+      let severity: 'info' | 'warning' | 'critical' = 'info';
+
+      if (check.status === 'warning') {
+        severity = 'warning';
+      } else if (check.status === 'failed') {
+        severity = 'critical';
+      }
+
+      return {
+        id: String(index + 1),
+        title: check.title,
+        description: check.details || `Check: ${check.title}`,
+        severity,
+      };
+    });
+
+    // Convert state changes
+    report.stateChanges = structuredReport.stateChanges.map((change) => ({
+      contract: change.contract,
+      property: `${change.contract}.${change.key}`,
+      oldValue: change.oldValue,
+      newValue: change.newValue,
+    }));
+
+    // Convert events to logs
+    report.logs = structuredReport.events.map(
+      (event) =>
+        `Event: ${event.name} from ${event.contract} with params: ${event.params.map((p) => p.value).join(', ')}`,
+    );
 
     return report;
   }, []);

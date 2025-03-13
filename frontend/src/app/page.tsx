@@ -1,6 +1,10 @@
 'use client';
 
-import { useSimulationResults, useReportFromMarkdown } from '@/hooks/use-simulation-results';
+import {
+  useSimulationResults,
+  useReportFromMarkdown,
+  useReportFromStructured,
+} from '@/hooks/use-simulation-results';
 import { useWriteProposeNew } from '@/hooks/use-write-propose-new';
 import { useAccount } from 'wagmi';
 import { Toaster } from '@/components/ui/sonner';
@@ -21,6 +25,7 @@ import { ReportCard } from '@/components/ReportCard';
 import { MarkdownReport } from '@/components/MarkdownReport';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
+import { StructuredReport } from '@/components/StructuredReport';
 
 // Fallback component for when the query fails
 function ErrorFallback({ error }: { error: Error }) {
@@ -58,6 +63,7 @@ export default function Home() {
 function ProposalSection({ isConnected }: { isConnected: boolean }) {
   const { data: simulationData, error: simulationError } = useSimulationResults();
   const convertToReportFormat = useReportFromMarkdown();
+  const convertStructuredToReportFormat = useReportFromStructured();
   const { mutate: proposeNew, isPending, isPendingConfirmation } = useWriteProposeNew();
 
   const handlePropose = () => {
@@ -104,17 +110,20 @@ function ProposalSection({ isConnected }: { isConnected: boolean }) {
 
   const { proposalData, report } = simulationData;
 
-  // Convert the markdown report to the format expected by ReportCard
-  const formattedReport = report.markdownReport
-    ? convertToReportFormat(report.markdownReport)
-    : {
-        status: report.status,
-        summary: report.summary,
-        gasUsed: '850,000',
-        findings: [],
-        stateChanges: [],
-        logs: [],
-      };
+  // Convert the report to the format expected by ReportCard
+  // Prefer using the structured report if available
+  const formattedReport = report.structuredReport
+    ? convertStructuredToReportFormat(report.structuredReport)
+    : report.markdownReport
+      ? convertToReportFormat(report.markdownReport)
+      : {
+          status: report.status,
+          summary: report.summary,
+          gasUsed: '850,000',
+          findings: [],
+          stateChanges: [],
+          logs: [],
+        };
 
   // Show proposal and report if we have data
   return (
@@ -142,7 +151,9 @@ function ProposalSection({ isConnected }: { isConnected: boolean }) {
               <ReportCard report={formattedReport} />
             </TabsContent>
             <TabsContent value="report">
-              {report.markdownReport ? (
+              {report.structuredReport ? (
+                <StructuredReport report={report.structuredReport} />
+              ) : report.markdownReport ? (
                 <MarkdownReport markdownReport={report.markdownReport} />
               ) : (
                 <Alert>

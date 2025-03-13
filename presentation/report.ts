@@ -13,7 +13,17 @@ import remarkToc from 'remark-toc';
 import { unified } from 'unified';
 import { visit } from 'unist-util-visit';
 import type { Visitor } from 'unist-util-visit';
-import type { AllCheckResults, GovernorType, ProposalEvent, SimulationData } from '../types';
+import type {
+  AllCheckResults,
+  GovernorType,
+  ProposalEvent,
+  SimulationData,
+  StructuredSimulationReport,
+  SimulationCheck,
+  SimulationStateChange,
+  SimulationEvent,
+  SimulationCalldata,
+} from '../types';
 import { formatProposalId } from '../utils/contracts/governor';
 import { join } from 'node:path';
 import { existsSync, mkdirSync } from 'node:fs';
@@ -117,6 +127,135 @@ function estimateTime(current: Block, block: BigNumber): number {
 }
 
 /**
+ * Generate a structured report from the check results
+ */
+function generateStructuredReport(
+  governorType: GovernorType,
+  blocks: { current: Block; start: Block | null; end: Block | null },
+  proposal: ProposalEvent,
+  checks: AllCheckResults,
+): StructuredSimulationReport {
+  // Extract title and proposal text
+  const title = getProposalTitle(proposal.description.trim());
+  const proposalText = proposal.description.trim();
+
+  // Determine overall status
+  let status: 'success' | 'warning' | 'error' = 'success';
+  for (const checkId in checks) {
+    const { result } = checks[checkId];
+    if (result.errors.length > 0) {
+      status = 'error';
+      break;
+    }
+    if (result.warnings.length > 0) {
+      status = 'warning';
+    }
+  }
+
+  // Format checks
+  const formattedChecks: SimulationCheck[] = Object.entries(checks).map(([_, check]) => {
+    const { name, result } = check;
+    const { errors, warnings, info } = result;
+
+    let checkStatus: 'passed' | 'warning' | 'failed' = 'passed';
+    if (errors.length > 0) {
+      checkStatus = 'failed';
+    } else if (warnings.length > 0) {
+      checkStatus = 'warning';
+    }
+
+    // Combine all messages into details
+    const details = [
+      ...errors.map((msg) => `**Error**: ${msg}`),
+      ...warnings.map((msg) => `**Warning**: ${msg}`),
+      ...info.map((msg) => `**Info**: ${msg}`),
+    ].join('\n\n');
+
+    return {
+      title: name,
+      status: checkStatus,
+      details: details.length > 0 ? details : undefined,
+    };
+  });
+
+  // Extract state changes
+  const stateChanges: SimulationStateChange[] = [];
+  // Look for state changes in the check results
+  for (const checkId in checks) {
+    const { result } = checks[checkId];
+    for (const infoMsg of result.info) {
+      // Try to extract state changes from info messages
+      const stateChangeMatch = infoMsg.match(
+        /`(.+?)`\s+key\s+`(.+?)`\s+changed\s+from\s+`(.+?)`\s+to\s+`(.+?)`/,
+      );
+      if (stateChangeMatch) {
+        stateChanges.push({
+          contract: stateChangeMatch[1],
+          key: stateChangeMatch[2],
+          oldValue: stateChangeMatch[3],
+          newValue: stateChangeMatch[4],
+        });
+      }
+    }
+  }
+
+  // Extract events
+  const events: SimulationEvent[] = [];
+  // Look for events in the check results
+  for (const checkId in checks) {
+    const { result } = checks[checkId];
+    for (const infoMsg of result.info) {
+      // Try to extract events from info messages
+      const eventMatch = infoMsg.match(/`(.+?)`\s+at\s+`(.+?)`\s*\n\s+\*\s+`(.+?)`/);
+      if (eventMatch) {
+        events.push({
+          name: eventMatch[1],
+          contract: eventMatch[2],
+          params: [{ name: 'params', value: eventMatch[3], type: 'unknown' }],
+        });
+      }
+    }
+  }
+
+  // Extract calldata
+  let calldata: SimulationCalldata | undefined;
+  // Look for calldata in the check results
+  for (const checkId in checks) {
+    if (checkId === 'decode-calldata') {
+      const { result } = checks[checkId];
+      for (const infoMsg of result.info) {
+        // Try to extract calldata from info messages
+        if (infoMsg.includes('transfers') || infoMsg.includes('calls')) {
+          calldata = {
+            decoded: infoMsg,
+            raw: proposal.calldatas.join(', '),
+          };
+          break;
+        }
+      }
+    }
+  }
+
+  // Create the structured report
+  return {
+    title,
+    proposalText,
+    status,
+    summary: `Simulation ${status === 'success' ? 'completed successfully' : status === 'warning' ? 'completed with warnings' : 'failed'} for proposal: "${title}".`,
+    checks: formattedChecks,
+    stateChanges,
+    events,
+    calldata,
+    metadata: {
+      blockNumber: blocks.current.number.toString(),
+      timestamp: blocks.current.timestamp.toString(),
+      proposalId: formatProposalId(governorType, proposal.id!),
+      proposer: proposal.proposer,
+    },
+  };
+}
+
+/**
  * Generates the proposal report and saves Markdown, PDF, and HTML versions of it.
  * Also writes the report data to the frontend/public directory for easy access.
  * @param blocks the relevant blocks for the proposal.
@@ -183,11 +322,15 @@ export async function generateAndSaveReports(
       description: proposal.description,
     };
 
+    // Generate the structured report
+    const structuredReport = generateStructuredReport(governorType, blocks, proposal, checks);
+
     // Create a simplified report structure for the frontend
     const reportForFrontend = {
-      status: 'success',
-      summary: `Simulation completed successfully for proposal: "${proposal.description}". The transaction is ready to be proposed.`,
+      status: structuredReport.status,
+      summary: structuredReport.summary,
       markdownReport, // Include the full markdown report
+      structuredReport, // Include the structured report
     };
 
     // Write the frontend data
