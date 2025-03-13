@@ -6,6 +6,7 @@ import { parseWeb3Error } from '@/lib/errors';
 import { useMutation } from '@tanstack/react-query';
 
 const HIGH_GAS_LIMIT = BigInt(10000000); // 10M gas limit for complex governance operations
+const TOAST_ID = 'proposal-tx'; // Consistent toast ID for updates
 
 /**
  * Hook for creating a new proposal
@@ -20,11 +21,9 @@ export function useWriteProposeNew() {
       if (!publicClient) throw new Error('Public client not found');
       if (!proposal) throw new Error('Proposal not found');
 
-      // Clear any existing toasts
+      // Clear any existing toasts and show initial state
       toast.dismiss();
-
-      // Show waiting for confirmation toast
-      const toastId = toast.loading('Waiting for confirmation...');
+      toast.loading('Waiting for wallet signature...', { id: TOAST_ID });
 
       const hash = await writeContractAsync({
         address: DEFAULT_GOVERNOR_ADDRESS,
@@ -37,13 +36,13 @@ export function useWriteProposeNew() {
           proposal.calldatas,
           proposal.description,
         ],
-        gas: HIGH_GAS_LIMIT, // Set high gas limit for governance operations
+        gas: HIGH_GAS_LIMIT,
       });
-      console.log(`Proposal created with hash: ${hash}`);
 
-      // Update toast to show waiting for transaction
-      toast.loading('Waiting for transaction to be confirmed...', {
-        id: toastId,
+      // Update toast for transaction confirmation
+      toast.loading('Transaction submitted - waiting for confirmation...', {
+        id: TOAST_ID,
+        description: `Transaction hash: ${hash}`,
       });
 
       const receipt = await publicClient.waitForTransactionReceipt({ hash });
@@ -53,20 +52,18 @@ export function useWriteProposeNew() {
         throw new Error('Transaction reverted', { cause: receipt });
       }
 
-      // Show success toast
-      toast.success('✅ Proposal Created!', {
-        description: `Transaction confirmed in block ${receipt.blockNumber}`,
-      });
-
       return { hash, receipt };
     },
     onSuccess: (data) => {
-      toast.success('✅ Proposal Created!', {
-        description: `Transaction confirmed in block ${data.receipt.blockNumber}`,
+      toast.success('Proposal created successfully!', {
+        id: TOAST_ID,
+        description: `Confirmed in block ${data.receipt.blockNumber}`,
+        duration: 5000, // Show success for 5 seconds
       });
     },
     onError: (error) => {
-      toast.error('❌ Error', {
+      toast.error('Transaction failed', {
+        id: TOAST_ID,
         description: parseWeb3Error(error as Error),
       });
     },
