@@ -13,13 +13,15 @@ const TOAST_ID = 'proposal-tx'; // Consistent toast ID for updates
  */
 export function useWriteProposeNew() {
   const publicClient = usePublicClient();
-  const { data: proposal } = useNewResponseFile();
+  const { data: simulationData } = useNewResponseFile();
   const { writeContractAsync, isPending: isPendingConfirmation } = useWriteContract();
 
   const mutation = useMutation({
     mutationFn: async () => {
       if (!publicClient) throw new Error('Public client not found');
-      if (!proposal) throw new Error('Proposal not found');
+      if (!simulationData) throw new Error('Simulation data not found');
+
+      const { proposalData: proposal } = simulationData;
 
       // Clear any existing toasts and show initial state
       toast.dismiss();

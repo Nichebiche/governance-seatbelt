@@ -1,6 +1,6 @@
 'use client';
 
-import { type Proposal, useNewResponseFile } from '@/hooks/use-new-response-file';
+import { useNewResponseFile } from '@/hooks/use-new-response-file';
 import { useWriteProposeNew } from '@/hooks/use-write-propose-new';
 import { useAccount } from 'wagmi';
 import { Toaster } from '@/components/ui/sonner';
@@ -17,13 +17,14 @@ import {
 } from '@/components/ui/card';
 import { InfoIcon, AlertTriangleIcon, CheckCircleIcon } from 'lucide-react';
 import { ErrorBoundary } from 'react-error-boundary';
+import { ReportCard } from '@/components/ReportCard';
 
 // Fallback component for when the query fails
 function ErrorFallback({ error }: { error: Error }) {
   return (
     <Alert variant="destructive" className="w-full">
       <AlertTriangleIcon className="h-4 w-4" />
-      <AlertTitle>Error Loading Proposal Data</AlertTitle>
+      <AlertTitle>Error Loading Simulation Data</AlertTitle>
       <AlertDescription>
         {error.message}
         <p className="mt-2">
@@ -40,7 +41,7 @@ export default function Home() {
   const { isConnected } = useAccount();
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen p-4 gap-6 max-w-4xl mx-auto">
+    <div className="flex flex-col items-center justify-center min-h-screen p-4 gap-6 max-w-7xl mx-auto">
       <ErrorBoundary FallbackComponent={ErrorFallback}>
         <ProposalSection isConnected={isConnected} />
       </ErrorBoundary>
@@ -52,12 +53,12 @@ export default function Home() {
 
 // Separate component for the proposal section
 function ProposalSection({ isConnected }: { isConnected: boolean }) {
-  const { data: proposal, error } = useNewResponseFile();
+  const { data: simulationData, error: simulationError } = useNewResponseFile();
   const { mutate: proposeNew, isPending, isPendingConfirmation } = useWriteProposeNew();
 
   const handlePropose = () => {
-    if (!proposal) {
-      toast.error('No proposal data available');
+    if (!simulationData) {
+      toast.error('No simulation data available');
       return;
     }
 
@@ -65,13 +66,13 @@ function ProposalSection({ isConnected }: { isConnected: boolean }) {
   };
 
   // Show error if there is one
-  if (error) {
+  if (simulationError) {
     return (
       <Alert variant="destructive" className="w-full">
         <AlertTriangleIcon className="h-4 w-4" />
         <AlertTitle>Error</AlertTitle>
         <AlertDescription>
-          {error.message}
+          {simulationError.message}
           <p className="mt-2">
             Make sure you have run a simulation and the simulation-results.json file exists in the
             public directory.
@@ -81,12 +82,12 @@ function ProposalSection({ isConnected }: { isConnected: boolean }) {
     );
   }
 
-  // Show loading or no data message if there's no proposal
-  if (!proposal) {
+  // Show loading or no data message if there's no simulation data
+  if (!simulationData) {
     return (
       <Alert className="w-full">
         <InfoIcon className="h-4 w-4" />
-        <AlertTitle>No Proposal Data Found</AlertTitle>
+        <AlertTitle>No Simulation Data Found</AlertTitle>
         <AlertDescription>
           <p>Run a simulation first to generate proposal data.</p>
           <code className="block mt-2 p-2 bg-gray-100 rounded text-sm">
@@ -97,16 +98,28 @@ function ProposalSection({ isConnected }: { isConnected: boolean }) {
     );
   }
 
-  // Show proposal and propose button if we have data
+  const { proposalData, report } = simulationData;
+
+  // Show proposal and report if we have data
   return (
     <div className="w-full space-y-6">
-      <ProposalCard
-        proposal={proposal}
-        onPropose={handlePropose}
-        isPending={isPending}
-        isPendingConfirmation={isPendingConfirmation}
-        isConnected={isConnected}
-      />
+      <div className="grid grid-cols-1 md:grid-cols-5 gap-6">
+        {/* Proposal Card - Right on desktop, Top on mobile */}
+        <div className="md:col-span-2 md:order-2 order-1">
+          <ProposalCard
+            proposal={proposalData}
+            onPropose={handlePropose}
+            isPending={isPending}
+            isPendingConfirmation={isPendingConfirmation}
+            isConnected={isConnected}
+          />
+        </div>
+
+        {/* Report Card - Left on desktop, Bottom on mobile */}
+        <div className="md:col-span-3 md:order-1 order-2">
+          <ReportCard report={report} />
+        </div>
+      </div>
     </div>
   );
 }
@@ -118,7 +131,7 @@ function ProposalCard({
   isPendingConfirmation,
   isConnected,
 }: {
-  proposal: Proposal;
+  proposal: any;
   onPropose: () => void;
   isPending: boolean;
   isPendingConfirmation: boolean;
@@ -135,7 +148,7 @@ function ProposalCard({
   };
 
   return (
-    <Card className="w-full">
+    <Card className="w-full h-full">
       <CardHeader>
         <CardTitle>{proposal.description}</CardTitle>
         <CardDescription>Transaction Parameters</CardDescription>
@@ -151,7 +164,7 @@ function ProposalCard({
         <div>
           <h3 className="font-medium text-sm mb-2">ETH Values</h3>
           <p className="font-mono text-sm bg-muted p-3 rounded-md min-h-[40px] flex items-center">
-            {displayValue(proposal.values.map((v) => v.toString()))}
+            {displayValue(proposal.values.map((v: bigint) => v.toString()))}
           </p>
         </div>
 
@@ -169,7 +182,7 @@ function ProposalCard({
           </p>
         </div>
       </CardContent>
-      <CardFooter className="flex justify-between items-center border-t pt-4">
+      <CardFooter className="flex justify-between items-center border-t py-4 mt-auto">
         <div className="flex items-center text-sm text-muted-foreground">
           <CheckCircleIcon className="h-4 w-4 mr-2 text-green-500" />
           Ready to propose
@@ -179,7 +192,7 @@ function ProposalCard({
             onClick={onPropose}
             disabled={isPending || isPendingConfirmation}
             size="lg"
-            className="cursor-pointer"
+            className="ml-6 px-6 font-medium cursor-pointer"
           >
             {isPendingConfirmation ? 'Confirming...' : isPending ? 'Creating...' : 'Propose'}
           </Button>
