@@ -525,6 +525,159 @@ function StateChangeItem({ stateChange }: { stateChange: SimulationStateChange }
     stateChange.contract
   );
 
+  // Clean values by removing quotes if they exist
+  const cleanValue = (value: string): string => {
+    // If the value is wrapped in quotes (like JSON strings often are)
+    if (value.startsWith('"') && value.endsWith('"')) {
+      return value.slice(1, -1);
+    }
+    return value;
+  };
+
+  const oldValueCleaned = cleanValue(stateChange.oldValue);
+  const newValueCleaned = cleanValue(stateChange.newValue);
+
+  // Determine if the change is a simple value change or a complex one
+  const isNumericChange =
+    !Number.isNaN(Number(oldValueCleaned)) && !Number.isNaN(Number(newValueCleaned));
+  const isAddressChange = oldValueCleaned.startsWith('0x') && newValueCleaned.startsWith('0x');
+  const isBooleanChange =
+    (oldValueCleaned === 'true' || oldValueCleaned === 'false') &&
+    (newValueCleaned === 'true' || newValueCleaned === 'false');
+
+  // Calculate difference for numeric values
+  const getDifference = () => {
+    if (isNumericChange) {
+      try {
+        const oldNum = BigInt(oldValueCleaned);
+        const newNum = BigInt(newValueCleaned);
+
+        // Check if we can safely convert to number for display
+        const canConvertToNumber =
+          oldNum <= BigInt(Number.MAX_SAFE_INTEGER) && newNum <= BigInt(Number.MAX_SAFE_INTEGER);
+
+        if (canConvertToNumber) {
+          const oldNumValue = Number(oldNum);
+          const newNumValue = Number(newNum);
+          const diff = newNumValue - oldNumValue;
+          const percentChange = oldNumValue !== 0 ? ((diff / oldNumValue) * 100).toFixed(2) : 'N/A';
+
+          return (
+            <div className="bg-muted p-3 rounded-md mt-4">
+              <div className="text-sm text-muted-foreground flex items-center justify-between">
+                <span>Difference</span>
+                <span
+                  className={`font-bold ${diff > 0 ? 'text-green-600' : diff < 0 ? 'text-red-600' : ''}`}
+                >
+                  {diff > 0 ? '+' : ''}
+                  {diff.toLocaleString()}
+                  {oldNumValue !== 0 && (
+                    <span className="text-xs text-muted-foreground ml-1">
+                      ({diff > 0 ? '+' : ''}
+                      {percentChange}%)
+                    </span>
+                  )}
+                </span>
+              </div>
+            </div>
+          );
+        }
+
+        // For very large numbers, just show if it increased or decreased
+        const increased = newNum > oldNum;
+        const decreased = newNum < oldNum;
+
+        // Calculate a simplified representation of the difference
+        const diffStr = (() => {
+          try {
+            // Try to show the actual difference for large numbers
+            const diff = newNum - oldNum;
+            const isPositive = diff > BigInt(0);
+            const isNegative = diff < BigInt(0);
+            const absDiff = isNegative ? -diff : diff;
+
+            // Format with commas for readability
+            const formattedDiff = absDiff.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+            return `${isPositive ? '+' : isNegative ? '-' : ''}${formattedDiff}`;
+          } catch {
+            // If we can't calculate the exact difference, just show direction
+            return '';
+          }
+        })();
+
+        return (
+          <div className="bg-muted p-3 rounded-md mt-4">
+            <div className="text-sm flex items-center justify-between">
+              <span className="text-muted-foreground">Change</span>
+              <span
+                className={`font-bold ${increased ? 'text-green-600' : decreased ? 'text-red-600' : ''}`}
+              >
+                {diffStr}
+              </span>
+            </div>
+          </div>
+        );
+      } catch {
+        // Fallback for any parsing errors
+        return (
+          <div className="bg-muted p-3 rounded-md mt-4">
+            <div className="text-sm text-muted-foreground">Change</div>
+            <div className="font-medium text-xs">Value changed</div>
+          </div>
+        );
+      }
+    }
+
+    if (isBooleanChange) {
+      return (
+        <div className="bg-muted p-3 rounded-md mt-4">
+          <div className="text-sm flex items-center justify-between">
+            <span className="text-muted-foreground">Change</span>
+            <span
+              className={`font-bold ${newValueCleaned === 'true' ? 'text-green-600' : 'text-red-600'}`}
+            >
+              {oldValueCleaned} → {newValueCleaned}
+            </span>
+          </div>
+        </div>
+      );
+    }
+
+    if (isAddressChange) {
+      return (
+        <div className="bg-muted p-3 rounded-md mt-4">
+          <div className="text-sm text-muted-foreground">Address Change</div>
+          <div className="font-medium text-xs">
+            <div className="flex flex-col gap-1">
+              <span>
+                From:{' '}
+                <code className="bg-muted-foreground/10 px-1 py-0.5 rounded">
+                  {oldValueCleaned.substring(0, 10)}...
+                  {oldValueCleaned.substring(oldValueCleaned.length - 8)}
+                </code>
+              </span>
+              <span>
+                To:{' '}
+                <code className="bg-muted-foreground/10 px-1 py-0.5 rounded">
+                  {newValueCleaned.substring(0, 10)}...
+                  {newValueCleaned.substring(newValueCleaned.length - 8)}
+                </code>
+              </span>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // For other types of changes, show a generic difference indicator
+    return (
+      <div className="bg-muted p-3 rounded-md mt-4">
+        <div className="text-sm text-muted-foreground">Change</div>
+        <div className="font-medium text-xs">Value changed</div>
+      </div>
+    );
+  };
+
   return (
     <div className="border border-muted rounded-md overflow-hidden">
       <button
@@ -549,6 +702,7 @@ function StateChangeItem({ stateChange }: { stateChange: SimulationStateChange }
       </button>
       {isExpanded && (
         <div className="p-5 pt-0 pl-11 text-sm border-t border-muted bg-muted/10">
+          {getDifference()}
           <div className="mt-4 grid grid-cols-2 gap-4">
             <div>
               <span className="text-muted-foreground font-medium">Old Value: </span>
