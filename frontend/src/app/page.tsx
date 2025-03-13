@@ -18,6 +18,9 @@ import {
 import { InfoIcon, AlertTriangleIcon, CheckCircleIcon } from 'lucide-react';
 import { ErrorBoundary } from 'react-error-boundary';
 import { ReportCard } from '@/components/ReportCard';
+import { MarkdownReport } from '@/components/MarkdownReport';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Badge } from '@/components/ui/badge';
 
 // Fallback component for when the query fails
 function ErrorFallback({ error }: { error: Error }) {
@@ -130,7 +133,28 @@ function ProposalSection({ isConnected }: { isConnected: boolean }) {
 
         {/* Report Card - Left on desktop, Bottom on mobile */}
         <div className="md:col-span-3 md:order-1 order-2">
-          <ReportCard report={formattedReport} />
+          <Tabs defaultValue="overview" className="w-full">
+            <TabsList className="w-full grid grid-cols-2">
+              <TabsTrigger value="overview">Overview</TabsTrigger>
+              <TabsTrigger value="report">Report</TabsTrigger>
+            </TabsList>
+            <TabsContent value="overview">
+              <ReportCard report={formattedReport} />
+            </TabsContent>
+            <TabsContent value="report">
+              {report.markdownReport ? (
+                <MarkdownReport markdownReport={report.markdownReport} />
+              ) : (
+                <Alert>
+                  <InfoIcon className="h-4 w-4" />
+                  <AlertTitle>No Report Available</AlertTitle>
+                  <AlertDescription>
+                    No detailed report is available for this simulation.
+                  </AlertDescription>
+                </Alert>
+              )}
+            </TabsContent>
+          </Tabs>
         </div>
       </div>
     </div>

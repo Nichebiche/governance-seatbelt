@@ -127,3 +127,47 @@ export function useReportFromMarkdown() {
     return report;
   }, []);
 }
+
+/**
+ * Hook to fetch the structured simulation report from the API
+ */
+export function useStructuredReport() {
+  return useSuspenseQuery<{
+    proposalData: Proposal;
+    report: {
+      status: 'success' | 'warning' | 'error';
+      summary: string;
+      markdownReport: string;
+      parsedReport: {
+        title: string;
+        proposalText: string;
+        status: 'success' | 'warning' | 'error';
+        checks: Array<{ title: string; status: string; details?: string }>;
+        stateChanges: Array<{ contract: string; key: string; oldValue: string; newValue: string }>;
+        events: Array<{ contract: string; name: string; params: string }>;
+        calldata: string | null;
+      };
+    };
+  }>({
+    queryKey: ['structured-report'],
+    queryFn: async () => {
+      const response = await fetch('/api/simulation-report');
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to fetch structured report');
+      }
+
+      const data = await response.json();
+
+      // Convert string values to BigInt for the proposal data
+      return {
+        proposalData: {
+          ...data.proposalData,
+          values: data.proposalData.values.map((value: string) => BigInt(value)),
+        },
+        report: data.report,
+      };
+    },
+  });
+}
