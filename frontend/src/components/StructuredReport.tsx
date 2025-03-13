@@ -503,7 +503,7 @@ function ExpandableCheckItem({ check }: { check: SimulationCheck }) {
 }
 
 function StateChangeItem({ stateChange }: { stateChange: SimulationStateChange }) {
-  const [isExpanded, setIsExpanded] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(true);
 
   const toggleExpanded = () => {
     setIsExpanded(!isExpanded);
