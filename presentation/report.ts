@@ -16,6 +16,7 @@ import type { Visitor } from 'unist-util-visit';
 import type { AllCheckResults, GovernorType, ProposalEvent, SimulationData } from '../types';
 import { formatProposalId } from '../utils/contracts/governor';
 import { join } from 'node:path';
+import { existsSync, mkdirSync } from 'node:fs';
 
 // --- Markdown helpers ---
 
@@ -117,6 +118,7 @@ function estimateTime(current: Block, block: BigNumber): number {
 
 /**
  * Generates the proposal report and saves Markdown, PDF, and HTML versions of it.
+ * Also writes the report data to the frontend/public directory for easy access.
  * @param blocks the relevant blocks for the proposal.
  * @param proposal The proposal details.
  * @param checks The checks results.
@@ -168,6 +170,31 @@ export async function generateAndSaveReports(
       },
     ),
   ]);
+
+  // Also write the report data to the frontend/public directory
+  try {
+    // Extract the proposal data in the format expected by the frontend
+    const proposalData = {
+      id: id,
+      targets: proposal.targets.map((target) => target as `0x${string}`),
+      values: proposal.values.map((value) => BigInt(value.toString())),
+      signatures: proposal.signatures,
+      calldatas: proposal.calldatas.map((data) => data as `0x${string}`),
+      description: proposal.description,
+    };
+
+    // Create a simplified report structure for the frontend
+    const reportForFrontend = {
+      status: 'success',
+      summary: `Simulation completed successfully for proposal: "${proposal.description}". The transaction is ready to be proposed.`,
+      markdownReport, // Include the full markdown report
+    };
+
+    // Write the frontend data
+    writeFrontendData([{ proposalData, report: reportForFrontend }]);
+  } catch (error) {
+    console.error('Error writing frontend data:', error);
+  }
 }
 
 /**
@@ -244,53 +271,32 @@ function remarkFixEmojiLinks() {
     }) as Visitor<Link>);
   };
 }
+
 /*
  * @notice Write simulation results to frontend public directory for easy access
+ * @param data The data to write to the frontend, containing proposalData and report
  */
-export function writeFrontendData(simOutputs: SimulationData[]) {
-  if (simOutputs.length === 0) {
-    console.log('No simulation results to write');
-    return;
-  }
+export function writeFrontendData(data: Array<{ proposalData: any; report: any }>) {
+  try {
+    // Use the correct path to the frontend/public directory
+    const projectRoot = join(__dirname, '..');
+    const frontendPublicDir = join(projectRoot, 'frontend', 'public');
 
-  // Process the simulation outputs to create a frontend-friendly format
-  const frontendData = simOutputs.map((simOutput) => {
-    const { config, proposal } = simOutput;
-
-    // Extract the proposal data in the format expected by the frontend
-    // Handle different types of simulation configs
-    if (config.type === 'new') {
-      // SimulationConfigNew has targets, values, etc.
-      return {
-        id: `${config.daoName}-${config.targets.join('')}`,
-        targets: config.targets.map((target) => target as `0x${string}`),
-        values: config.values.map((value) => BigInt(value.toString())),
-        signatures: config.signatures,
-        calldatas: config.calldatas.map((data) => data as `0x${string}`),
-        description: config.description,
-      };
+    // Create the directory if it doesn't exist
+    if (!existsSync(frontendPublicDir)) {
+      mkdirSync(frontendPublicDir, { recursive: true });
+      console.log(`Created directory: ${frontendPublicDir}`);
     }
 
-    // For proposed or executed proposals, use the proposal event data
-    return {
-      id: `${config.daoName}-${proposal.targets.join('')}`,
-      targets: proposal.targets.map((target) => target as `0x${string}`),
-      values: proposal.values.map((value) => BigInt(value.toString())),
-      signatures: proposal.signatures,
-      calldatas: proposal.calldatas.map((data) => data as `0x${string}`),
-      description: proposal.description,
-    };
-  });
-
-  const frontendPublicDir = join(__dirname, 'frontend', 'public');
-
-  writeFileSync(
-    join(frontendPublicDir, 'simulation-results.json'),
-    JSON.stringify(
-      frontendData,
-      (_, value) => (typeof value === 'bigint' ? value.toString() : value),
-      2,
-    ),
-  );
-  console.log('Simulation results written to frontend/public/simulation-results.json');
+    // Write the frontend data
+    writeFileSync(
+      join(frontendPublicDir, 'simulation-results.json'),
+      JSON.stringify(data, (_, value) => (typeof value === 'bigint' ? value.toString() : value), 2),
+    );
+    console.log(
+      `Simulation results written to ${join(frontendPublicDir, 'simulation-results.json')}`,
+    );
+  } catch (error) {
+    console.error('Error writing frontend data:', error);
+  }
 }

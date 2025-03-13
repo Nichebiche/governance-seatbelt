@@ -1,6 +1,6 @@
 'use client';
 
-import { useNewResponseFile } from '@/hooks/use-new-response-file';
+import { useSimulationResults, useReportFromMarkdown } from '@/hooks/use-simulation-results';
 import { useWriteProposeNew } from '@/hooks/use-write-propose-new';
 import { useAccount } from 'wagmi';
 import { Toaster } from '@/components/ui/sonner';
@@ -53,7 +53,8 @@ export default function Home() {
 
 // Separate component for the proposal section
 function ProposalSection({ isConnected }: { isConnected: boolean }) {
-  const { data: simulationData, error: simulationError } = useNewResponseFile();
+  const { data: simulationData, error: simulationError } = useSimulationResults();
+  const convertToReportFormat = useReportFromMarkdown();
   const { mutate: proposeNew, isPending, isPendingConfirmation } = useWriteProposeNew();
 
   const handlePropose = () => {
@@ -100,6 +101,18 @@ function ProposalSection({ isConnected }: { isConnected: boolean }) {
 
   const { proposalData, report } = simulationData;
 
+  // Convert the markdown report to the format expected by ReportCard
+  const formattedReport = report.markdownReport
+    ? convertToReportFormat(report.markdownReport)
+    : {
+        status: report.status,
+        summary: report.summary,
+        gasUsed: '850,000',
+        findings: [],
+        stateChanges: [],
+        logs: [],
+      };
+
   // Show proposal and report if we have data
   return (
     <div className="w-full space-y-6">
@@ -117,7 +130,7 @@ function ProposalSection({ isConnected }: { isConnected: boolean }) {
 
         {/* Report Card - Left on desktop, Bottom on mobile */}
         <div className="md:col-span-3 md:order-1 order-2">
-          <ReportCard report={report} />
+          <ReportCard report={formattedReport} />
         </div>
       </div>
     </div>

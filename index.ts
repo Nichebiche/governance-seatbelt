@@ -161,7 +161,6 @@ async function main() {
     );
   }
 
-  writeFrontendData(simOutputs);
   console.log('Done!');
 }
 

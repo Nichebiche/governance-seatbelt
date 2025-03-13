@@ -1,6 +1,6 @@
 import { DEFAULT_GOVERNOR_ADDRESS, GOVERNOR_ABI } from '@/config';
 import { usePublicClient, useWriteContract } from 'wagmi';
-import { useNewResponseFile } from './use-new-response-file';
+import { useSimulationResults } from './use-simulation-results';
 import { toast } from 'sonner';
 import { parseWeb3Error } from '@/lib/errors';
 import { useMutation } from '@tanstack/react-query';
@@ -13,7 +13,7 @@ const TOAST_ID = 'proposal-tx'; // Consistent toast ID for updates
  */
 export function useWriteProposeNew() {
   const publicClient = usePublicClient();
-  const { data: simulationData } = useNewResponseFile();
+  const { data: simulationData } = useSimulationResults();
   const { writeContractAsync, isPending: isPendingConfirmation } = useWriteContract();
 
   const mutation = useMutation({
@@ -21,7 +21,7 @@ export function useWriteProposeNew() {
       if (!publicClient) throw new Error('Public client not found');
       if (!simulationData) throw new Error('Simulation data not found');
 
-      const { proposalData: proposal } = simulationData;
+      const { proposalData } = simulationData;
 
       // Clear any existing toasts and show initial state
       toast.dismiss();
@@ -32,11 +32,11 @@ export function useWriteProposeNew() {
         abi: GOVERNOR_ABI,
         functionName: 'propose',
         args: [
-          proposal.targets,
-          proposal.values,
-          proposal.signatures,
-          proposal.calldatas,
-          proposal.description,
+          proposalData.targets,
+          proposalData.values,
+          proposalData.signatures,
+          proposalData.calldatas,
+          proposalData.description,
         ],
         gas: HIGH_GAS_LIMIT,
       });
