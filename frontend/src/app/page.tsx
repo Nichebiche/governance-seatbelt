@@ -17,7 +17,6 @@ import {
 } from '@/components/ui/card';
 import { InfoIcon, AlertTriangleIcon, CheckCircleIcon } from 'lucide-react';
 import { ErrorBoundary } from 'react-error-boundary';
-import { ConnectButton } from '@rainbow-me/rainbowkit';
 
 // Fallback component for when the query fails
 function ErrorFallback({ error }: { error: Error }) {
@@ -42,8 +41,6 @@ export default function Home() {
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen p-4 gap-6 max-w-4xl mx-auto">
-      <h1 className="text-3xl font-bold mb-4">Governance Seatbelt</h1>
-
       <ErrorBoundary FallbackComponent={ErrorFallback}>
         <ProposalSection isConnected={isConnected} />
       </ErrorBoundary>
@@ -105,22 +102,15 @@ function ProposalSection({ isConnected }: { isConnected: boolean }) {
     <>
       <ProposalCard proposal={proposal} />
 
-      <div className="flex gap-4 items-center">
-        <ConnectButton />
-        {isConnected && (
-          <Button
-            onClick={handlePropose}
-            disabled={isPending || isPendingConfirmation}
-            className="cursor-pointer"
-          >
-            {isPendingConfirmation
-              ? 'Confirming...'
-              : isPending
-                ? 'Creating Proposal...'
-                : 'Propose'}
-          </Button>
-        )}
-      </div>
+      {isConnected && (
+        <Button
+          onClick={handlePropose}
+          disabled={isPending || isPendingConfirmation}
+          className="cursor-pointer"
+        >
+          {isPendingConfirmation ? 'Confirming...' : isPending ? 'Creating Proposal...' : 'Propose'}
+        </Button>
+      )}
     </>
   );
 }
