@@ -15,7 +15,7 @@ import {
 } from '@/components/ui/card';
 import { Toaster } from '@/components/ui/sonner';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { useSimulationResults } from '@/hooks/use-simulation-results';
+import { type Proposal, useSimulationResults } from '@/hooks/use-simulation-results';
 import { useWriteProposeNew } from '@/hooks/use-write-propose-new';
 import { AlertTriangleIcon, CheckCircleIcon, InfoIcon } from 'lucide-react';
 import React from 'react';
@@ -147,7 +147,7 @@ function ProposalCard({
   isConnected,
   className,
 }: {
-  proposal: any;
+  proposal: Proposal;
   onPropose: () => void;
   isPending: boolean;
   isPendingConfirmation: boolean;
