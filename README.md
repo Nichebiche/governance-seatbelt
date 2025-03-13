@@ -49,6 +49,8 @@ To run the frontend with simulation results:
    SIM_NAME=uni-transfer bun run propose
    ```
 
+The frontend will be available at `http://localhost:3000`.
+
 ### Creating Proposals
 
 The frontend allows you to:
