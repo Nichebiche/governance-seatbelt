@@ -153,13 +153,67 @@ export function StructuredReport({ report }: StructuredReportProps) {
                   <span>No state changes found in the report</span>
                 </div>
               ) : (
-                <div className="space-y-3">
-                  {report.stateChanges.map((change, index) => (
-                    <StateChangeItem
-                      key={`state-${change.contract}-${change.key}-${index}`}
-                      stateChange={change}
-                    />
-                  ))}
+                <div className="space-y-6">
+                  {/* Group state changes by contract */}
+                  {Object.entries(
+                    report.stateChanges.reduce<Record<string, SimulationStateChange[]>>(
+                      (acc, change) => {
+                        // Contract always exists on change but may be generic
+                        const contractName = change.contract;
+
+                        // We'll keep the original contract name in the key for grouping
+                        const key = `${contractName}|${change.contractAddress || ''}`;
+
+                        if (!acc[key]) {
+                          acc[key] = [];
+                        }
+                        acc[key].push(change);
+                        return acc;
+                      },
+                      {},
+                    ),
+                  ).map(([contractKey, changes]) => {
+                    const [contractName, contractAddress] = contractKey.split('|');
+                    return (
+                      <div key={contractKey} className="space-y-3">
+                        {/* Contract header */}
+                        <div className="flex items-center gap-2 mb-2">
+                          <h3 className="text-lg font-semibold">
+                            {contractName === 'balances'
+                              ? 'Token Balances'
+                              : contractName === 'storage'
+                                ? 'Contract Storage'
+                                : contractName === 'code'
+                                  ? 'Contract Code'
+                                  : contractName}
+                            {contractAddress && (
+                              <span className="ml-2 text-sm font-normal">
+                                at{' '}
+                                <a
+                                  href={`https://etherscan.io/address/${contractAddress}`}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="font-mono text-xs bg-muted-foreground/10 px-1 py-0.5 rounded hover:underline inline-flex items-center"
+                                >
+                                  {contractAddress}
+                                  <ExternalLinkIcon className="h-3 w-3 ml-1" />
+                                </a>
+                              </span>
+                            )}
+                          </h3>
+                        </div>
+                        {/* State changes for this contract */}
+                        <div className="space-y-3 pl-2">
+                          {changes.map((change, index) => (
+                            <StateChangeItem
+                              key={`state-${change.contract}-${change.key}-${index}`}
+                              stateChange={change}
+                            />
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
               )}
             </div>
@@ -217,15 +271,17 @@ function ExpandableCheckItem({ check }: { check: SimulationCheck }) {
     const lines = details.split('\n');
 
     let currentContract = '';
+    let currentContractAddress = '';
 
     for (let i = 0; i < lines.length; i++) {
       const line = lines[i];
 
-      // Extract contract name
+      // Extract contract name and address
       if (line.includes('at `0x')) {
         const match = line.match(/(.+) at `(0x[a-fA-F0-9]{40})`/);
         if (match) {
           currentContract = match[1].trim();
+          currentContractAddress = match[2];
         }
       }
 
@@ -235,6 +291,7 @@ function ExpandableCheckItem({ check }: { check: SimulationCheck }) {
         if (keyMatch && currentContract) {
           stateChanges.push({
             contract: currentContract,
+            contractAddress: currentContractAddress,
             key: keyMatch[1],
             oldValue: keyMatch[2],
             newValue: keyMatch[3],
@@ -250,11 +307,28 @@ function ExpandableCheckItem({ check }: { check: SimulationCheck }) {
   const FormattedDetails = useMemo(() => {
     if (!check.details) return null;
 
+    // Pre-process the raw details to remove all instances of "**Info**:" and similar patterns
+    let preprocessedDetails = check.details;
+
+    // First, handle the specific case of "**Info**: - Uni (Uniswap)"
+    preprocessedDetails = preprocessedDetails.replace(
+      /\*\*Info\*\*: - ([A-Za-z0-9]+ \([A-Za-z0-9]+\))/g,
+      '$1',
+    );
+
+    // Then remove all other variations of Info prefixes
+    preprocessedDetails = preprocessedDetails
+      .replace(/\*\*Info\*\*:/g, '')
+      .replace(/\*\*Warnings\*\*:/g, '')
+      .replace(/Info:/g, '')
+      .replace(/Warnings:/g, '')
+      .replace(/^- \*\*Info\*\*:/gm, '')
+      .replace(/^-\s*\*\*Info\*\*:/gm, '')
+      .replace(/^-\s*Info:/gm, '')
+      .replace(/^-\s*/gm, '');
+
     // Remove all markdown formatting
-    const cleanedDetails = check.details
-      .replace(/\*\*Info\*\*:\s*/g, '')
-      .replace(/\*\*Warnings\*\*:\s*/g, '')
-      .replace(/\*\*([^*]+)\*\*:/g, '$1:');
+    const cleanedDetails = preprocessedDetails.replace(/\*\*([^*]+)\*\*:/g, '$1:');
 
     // Split by lines to process each line
     const lines = cleanedDetails.split('\n').filter((line) => line.trim() !== '');
@@ -262,8 +336,58 @@ function ExpandableCheckItem({ check }: { check: SimulationCheck }) {
     return (
       <>
         {lines.map((line, index) => {
-          // Remove any leading hyphens from all lines
-          const cleanedLine = line.replace(/^-\s*/, '');
+          // Final cleanup for any remaining Info prefixes
+          let processedLine = line
+            .replace(/^\*\*Info\*\*:\s*/, '')
+            .replace(/^\*\*Info\*\*:\s*-\s*/, '')
+            .replace(/^Info:\s*/, '')
+            .replace(/^Info\s*-\s*/, '');
+
+          // Remove "Info:" if it appears at the beginning of a line
+          processedLine = processedLine
+            .replace(/^\*\*Info\*\*:\s*/, '')
+            .replace(/^\*\*Info\*\*:\s*-\s*/, '');
+
+          // Special case for "**Info**: - Uni (Uniswap)"
+          if (processedLine.match(/^\*\*Info\*\*:\s*-\s*[A-Za-z0-9]+ \([A-Za-z0-9]+\)/)) {
+            processedLine = processedLine.replace(/^\*\*Info\*\*:\s*-\s*/, '');
+          }
+
+          // Direct check for the exact pattern "**Info**: - Uni (Uniswap)"
+          const uniMatch = processedLine.match(/^\*\*Info\*\*: - ([A-Za-z0-9]+ \([A-Za-z0-9]+\))/);
+          if (uniMatch) {
+            processedLine = uniMatch[1];
+          }
+
+          // Check if this is a contract name line (like "Uni (Uniswap) at 0x...")
+          if (processedLine.match(/^[A-Za-z0-9]+ \([A-Za-z0-9]+\) at `0x[a-fA-F0-9]{40}`/)) {
+            const match = processedLine.match(
+              /^([A-Za-z0-9]+ \([A-Za-z0-9]+\)) at `(0x[a-fA-F0-9]{40})`/,
+            );
+            if (match) {
+              const contractName = match[1];
+              const contractAddress = match[2];
+              return (
+                <div key={`contract-header-${contractAddress}`} className="mb-4 mt-2">
+                  <h3 className="text-lg font-semibold flex items-center">
+                    {contractName}
+                    <span className="ml-2 text-sm font-normal">
+                      at{' '}
+                      <a
+                        href={`https://etherscan.io/address/${contractAddress}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="font-mono text-xs bg-muted-foreground/10 px-1 py-0.5 rounded hover:underline inline-flex items-center"
+                      >
+                        {contractAddress}
+                        <ExternalLinkIcon className="h-3 w-3 ml-1" />
+                      </a>
+                    </span>
+                  </h3>
+                </div>
+              );
+            }
+          }
 
           // Process line to replace addresses with links
           const parts: React.ReactNode[] = [];
@@ -273,31 +397,31 @@ function ExpandableCheckItem({ check }: { check: SimulationCheck }) {
 
           // Check if this is a target line
           const isTargetLine =
-            cleanedLine.includes('Contract (verified)') ||
-            cleanedLine.includes('EOA (verification not applicable)') ||
-            cleanedLine.includes('Contract (looks safe)') ||
-            cleanedLine.includes('Trusted contract');
+            processedLine.includes('Contract (verified)') ||
+            processedLine.includes('EOA (verification not applicable)') ||
+            processedLine.includes('Contract (looks safe)') ||
+            processedLine.includes('Trusted contract');
 
           if (isTargetLine) {
             // Extract target address from the line - handle different formats
             const targetMatch =
-              cleanedLine.match(/\[`(0x[a-fA-F0-9]{40})`\]/) ||
-              cleanedLine.match(/at `(0x[a-fA-F0-9]{40})`/);
+              processedLine.match(/\[`(0x[a-fA-F0-9]{40})`\]/) ||
+              processedLine.match(/at `(0x[a-fA-F0-9]{40})`/);
             if (targetMatch) {
               const address = targetMatch[1];
               // Get the contract status
               let status = 'Unknown';
-              if (cleanedLine.includes('Contract (verified)')) status = 'Contract (verified)';
-              else if (cleanedLine.includes('EOA (verification not applicable)')) status = 'EOA';
-              else if (cleanedLine.includes('Contract (looks safe)'))
+              if (processedLine.includes('Contract (verified)')) status = 'Contract (verified)';
+              else if (processedLine.includes('EOA (verification not applicable)')) status = 'EOA';
+              else if (processedLine.includes('Contract (looks safe)'))
                 status = 'Contract (looks safe)';
-              else if (cleanedLine.includes('Trusted contract')) status = 'Trusted contract';
+              else if (processedLine.includes('Trusted contract')) status = 'Trusted contract';
 
               // Format the target with proper styling
               return (
                 <div key={`target-${address}`} className="mb-3">
                   <div className="flex items-center flex-wrap">
-                    <span className="mr-2">{cleanedLine.includes('at `') ? '' : 'Target:'}</span>
+                    <span className="mr-2">{processedLine.includes('at `') ? '' : 'Target:'}</span>
                     <a
                       href={`https://etherscan.io/address/${address}`}
                       target="_blank"
@@ -316,20 +440,20 @@ function ExpandableCheckItem({ check }: { check: SimulationCheck }) {
 
           // Check if this is an event line
           const isEventLine =
-            cleanedLine.includes('`') &&
-            (cleanedLine.includes('Transfer(') ||
-              cleanedLine.includes('Approval(') ||
-              (cleanedLine.includes('(') &&
-                cleanedLine.includes(')') &&
-                cleanedLine.includes(':')));
+            processedLine.includes('`') &&
+            (processedLine.includes('Transfer(') ||
+              processedLine.includes('Approval(') ||
+              (processedLine.includes('(') &&
+                processedLine.includes(')') &&
+                processedLine.includes(':')));
 
           // Check if this is a calldata line
           const isCalldataLine =
-            cleanedLine.includes('transfers') && cleanedLine.includes('UNI to');
+            processedLine.includes('transfers') && processedLine.includes('UNI to');
 
           if (isCalldataLine) {
             // Format calldata as code and remove any backticks
-            const formattedLine = cleanedLine.replace(/`/g, '');
+            const formattedLine = processedLine.replace(/`/g, '');
 
             // Extract addresses from the calldata line
             const fromAddressMatch = formattedLine.match(/(0x[a-fA-F0-9]{40}) transfers/);
@@ -384,7 +508,7 @@ function ExpandableCheckItem({ check }: { check: SimulationCheck }) {
 
           if (isEventLine) {
             // Format event as code
-            const eventMatch = cleanedLine.match(/`([^`]+)`/);
+            const eventMatch = processedLine.match(/`([^`]+)`/);
             if (eventMatch) {
               const eventText = eventMatch[1];
 
@@ -400,11 +524,11 @@ function ExpandableCheckItem({ check }: { check: SimulationCheck }) {
           }
 
           // Use a different approach to avoid assignment in the while condition
-          match = addressRegex.exec(cleanedLine);
+          match = addressRegex.exec(processedLine);
           while (match !== null) {
             // Add text before the match
             if (match.index > lastIndex) {
-              parts.push(cleanedLine.substring(lastIndex, match.index));
+              parts.push(processedLine.substring(lastIndex, match.index));
             }
 
             // Add the address as a link
@@ -423,33 +547,33 @@ function ExpandableCheckItem({ check }: { check: SimulationCheck }) {
             );
 
             lastIndex = match.index + match[0].length;
-            match = addressRegex.exec(cleanedLine);
+            match = addressRegex.exec(processedLine);
           }
 
           // Add remaining text
-          if (lastIndex < cleanedLine.length) {
-            parts.push(cleanedLine.substring(lastIndex));
+          if (lastIndex < processedLine.length) {
+            parts.push(processedLine.substring(lastIndex));
           }
 
           // For simple informational lines like "No ETH is required..."
           if (
-            cleanedLine.includes('No ETH is required') ||
-            cleanedLine.includes('No ETH transfers detected') ||
-            (parts.length === 1 && typeof parts[0] === 'string' && !cleanedLine.includes('`'))
+            processedLine.includes('No ETH is required') ||
+            processedLine.includes('No ETH transfers detected') ||
+            (parts.length === 1 && typeof parts[0] === 'string' && !processedLine.includes('`'))
           ) {
             return (
               <div
-                key={`info-${cleanedLine.substring(0, 30).replace(/\s+/g, '-')}`}
+                key={`info-${processedLine.substring(0, 30).replace(/\s+/g, '-')}`}
                 className="mb-3"
               >
-                <p className="text-muted-foreground">{parts.length > 0 ? parts : cleanedLine}</p>
+                <p className="text-muted-foreground">{parts.length > 0 ? parts : processedLine}</p>
               </div>
             );
           }
 
           return (
-            <p key={`line-${index}-${cleanedLine.substring(0, 20)}`} className="mb-2">
-              {parts.length > 0 ? parts : cleanedLine}
+            <p key={`line-${index}-${processedLine.substring(0, 20)}`} className="mb-2">
+              {parts.length > 0 ? parts : processedLine}
             </p>
           );
         })}
@@ -485,13 +609,65 @@ function ExpandableCheckItem({ check }: { check: SimulationCheck }) {
       {isExpanded && check.details && (
         <div className="p-5 pt-0 pl-11 text-sm border-t border-muted bg-muted/10">
           {hasStateChanges ? (
-            <div className="mt-4 space-y-3">
-              {stateChanges.map((change, index) => (
-                <StateChangeItem
-                  key={`check-state-${change.contract}-${change.key}-${index}`}
-                  stateChange={change}
-                />
-              ))}
+            <div className="mt-4 space-y-6">
+              {/* Group state changes by contract */}
+              {Object.entries(
+                stateChanges.reduce<Record<string, SimulationStateChange[]>>((acc, change) => {
+                  // Contract always exists on change but may be generic
+                  const contractName = change.contract;
+
+                  // We'll keep the original contract name in the key for grouping
+                  const contractAddress = change.contractAddress || '';
+                  const key = `${contractName}|${contractAddress}`;
+
+                  if (!acc[key]) {
+                    acc[key] = [];
+                  }
+                  acc[key].push(change);
+                  return acc;
+                }, {}),
+              ).map(([contractKey, changes]) => {
+                const [contractName, contractAddress] = contractKey.split('|');
+                return (
+                  <div key={contractKey} className="space-y-3">
+                    {/* Contract header */}
+                    <div className="flex items-center gap-2 mb-2">
+                      <h3 className="text-lg font-semibold">
+                        {contractName === 'balances'
+                          ? 'Token Balances'
+                          : contractName === 'storage'
+                            ? 'Contract Storage'
+                            : contractName === 'code'
+                              ? 'Contract Code'
+                              : contractName}
+                        {contractAddress && (
+                          <span className="ml-2 text-sm font-normal">
+                            at{' '}
+                            <a
+                              href={`https://etherscan.io/address/${contractAddress}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="font-mono text-xs bg-muted-foreground/10 px-1 py-0.5 rounded hover:underline inline-flex items-center"
+                            >
+                              {contractAddress}
+                              <ExternalLinkIcon className="h-3 w-3 ml-1" />
+                            </a>
+                          </span>
+                        )}
+                      </h3>
+                    </div>
+                    {/* State changes for this contract */}
+                    <div className="space-y-3 pl-2">
+                      {changes.map((change, index) => (
+                        <StateChangeItem
+                          key={`check-state-${change.contract}-${change.key}-${index}`}
+                          stateChange={change}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           ) : (
             <div className="mt-4 whitespace-pre-wrap">{FormattedDetails}</div>
@@ -508,22 +684,6 @@ function StateChangeItem({ stateChange }: { stateChange: SimulationStateChange }
   const toggleExpanded = () => {
     setIsExpanded(!isExpanded);
   };
-
-  // Create a clickable contract name if contractAddress is available
-  const contractDisplay = stateChange.contractAddress ? (
-    <a
-      href={`https://etherscan.io/address/${stateChange.contractAddress}`}
-      target="_blank"
-      rel="noopener noreferrer"
-      className="font-mono text-xs bg-muted-foreground/10 px-1 py-0.5 rounded hover:underline inline-flex items-center"
-      onClick={(e) => e.stopPropagation()} // Prevent toggling when clicking the link
-    >
-      {stateChange.contract}
-      <ExternalLinkIcon className="h-3 w-3 ml-1" />
-    </a>
-  ) : (
-    stateChange.contract
-  );
 
   // Clean values by removing quotes if they exist
   const cleanValue = (value: string): string => {
@@ -549,76 +709,80 @@ function StateChangeItem({ stateChange }: { stateChange: SimulationStateChange }
   const getDifference = () => {
     if (isNumericChange) {
       try {
+        // Parse the values as BigInt to handle very large numbers
         const oldNum = BigInt(oldValueCleaned);
         const newNum = BigInt(newValueCleaned);
+        const diff = newNum - oldNum;
 
-        // Check if we can safely convert to number for display
-        const canConvertToNumber =
-          oldNum <= BigInt(Number.MAX_SAFE_INTEGER) && newNum <= BigInt(Number.MAX_SAFE_INTEGER);
+        // Determine if the change is positive, negative, or zero
+        const isPositive = diff > BigInt(0);
+        const isNegative = diff < BigInt(0);
+        const absDiff = isNegative ? -diff : diff;
 
-        if (canConvertToNumber) {
-          const oldNumValue = Number(oldNum);
-          const newNumValue = Number(newNum);
-          const diff = newNumValue - oldNumValue;
-          const percentChange = oldNumValue !== 0 ? ((diff / oldNumValue) * 100).toFixed(2) : 'N/A';
+        // Format the difference with commas for readability
+        const formattedDiff = absDiff.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
 
-          return (
-            <div className="bg-muted p-3 rounded-md mt-4">
-              <div className="text-sm text-muted-foreground flex items-center justify-between">
-                <span>Difference</span>
-                <span
-                  className={`font-bold ${diff > 0 ? 'text-green-600' : diff < 0 ? 'text-red-600' : ''}`}
-                >
-                  {diff > 0 ? '+' : ''}
-                  {diff.toLocaleString()}
-                  {oldNumValue !== 0 && (
-                    <span className="text-xs text-muted-foreground ml-1">
-                      ({diff > 0 ? '+' : ''}
-                      {percentChange}%)
-                    </span>
-                  )}
-                </span>
-              </div>
-            </div>
-          );
-        }
+        // Calculate percentage for display
+        let percentageDisplay = '';
 
-        // For very large numbers, just show if it increased or decreased
-        const increased = newNum > oldNum;
-        const decreased = newNum < oldNum;
-
-        // Calculate a simplified representation of the difference
-        const diffStr = (() => {
+        // Only calculate percentage if old value is not zero
+        if (oldNum !== BigInt(0)) {
           try {
-            // Try to show the actual difference for large numbers
-            const diff = newNum - oldNum;
-            const isPositive = diff > BigInt(0);
-            const isNegative = diff < BigInt(0);
-            const absDiff = isNegative ? -diff : diff;
+            // For very large numbers, use a simplified approach
+            // Just use the first few digits for an approximate percentage
+            const oldNumDigits = oldNum.toString().length;
+            const diffDigits = diff.toString().length;
 
-            // Format with commas for readability
-            const formattedDiff = absDiff.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
-            return `${isPositive ? '+' : isNegative ? '-' : ''}${formattedDiff}`;
-          } catch {
-            // If we can't calculate the exact difference, just show direction
-            return '';
+            // If numbers are too large for JS Number, use a simplified calculation
+            if (oldNumDigits > 15 || diffDigits > 15) {
+              // Use the first 5 digits for percentage calculation
+              const oldNumPrefix = Number(oldNum.toString().substring(0, 5));
+              const diffPrefix = Number(diff.toString().substring(0, 5));
+
+              // Calculate an approximate percentage
+              const percentChange = Math.abs((diffPrefix / oldNumPrefix) * 100);
+
+              // Only show percentage if it's meaningful
+              if (percentChange > 0.1 && percentChange < 10000) {
+                percentageDisplay = `${isPositive ? '+' : '-'}${Math.round(percentChange)}%`;
+              }
+            } else {
+              // For smaller numbers, calculate exact percentage
+              const percentChange = Math.abs(Number((diff * BigInt(100)) / oldNum));
+              if (percentChange > 0 && percentChange < 10000) {
+                percentageDisplay = `${isPositive ? '+' : '-'}${percentChange}%`;
+              }
+            }
+          } catch (_) {
+            // Silently fail if percentage calculation errors
           }
-        })();
+        }
 
         return (
           <div className="bg-muted p-3 rounded-md mt-4">
             <div className="text-sm flex items-center justify-between">
               <span className="text-muted-foreground">Change</span>
-              <span
-                className={`font-bold ${increased ? 'text-green-600' : decreased ? 'text-red-600' : ''}`}
-              >
-                {diffStr}
-              </span>
+              <div className="flex flex-col items-end">
+                <span
+                  className={`font-bold ${isPositive ? 'text-green-600' : isNegative ? 'text-red-600' : ''}`}
+                >
+                  {isPositive ? '+' : isNegative ? '-' : ''}
+                  {formattedDiff}
+                </span>
+                {percentageDisplay && (
+                  <span
+                    className={`text-xs ${isPositive ? 'text-green-600' : isNegative ? 'text-red-600' : ''}`}
+                  >
+                    {percentageDisplay}
+                  </span>
+                )}
+              </div>
             </div>
           </div>
         );
-      } catch {
+      } catch (error) {
         // Fallback for any parsing errors
+        console.error('Error calculating difference:', error);
         return (
           <div className="bg-muted p-3 rounded-md mt-4">
             <div className="text-sm text-muted-foreground">Change</div>
@@ -652,15 +816,29 @@ function StateChangeItem({ stateChange }: { stateChange: SimulationStateChange }
               <span>
                 From:{' '}
                 <code className="bg-muted-foreground/10 px-1 py-0.5 rounded">
-                  {oldValueCleaned.substring(0, 10)}...
-                  {oldValueCleaned.substring(oldValueCleaned.length - 8)}
+                  <a
+                    href={`https://etherscan.io/address/${oldValueCleaned}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="hover:underline inline-flex items-center"
+                  >
+                    {oldValueCleaned}
+                    <ExternalLinkIcon className="h-3 w-3 ml-1" />
+                  </a>
                 </code>
               </span>
               <span>
                 To:{' '}
                 <code className="bg-muted-foreground/10 px-1 py-0.5 rounded">
-                  {newValueCleaned.substring(0, 10)}...
-                  {newValueCleaned.substring(newValueCleaned.length - 8)}
+                  <a
+                    href={`https://etherscan.io/address/${newValueCleaned}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="hover:underline inline-flex items-center"
+                  >
+                    {newValueCleaned}
+                    <ExternalLinkIcon className="h-3 w-3 ml-1" />
+                  </a>
                 </code>
               </span>
             </div>
@@ -687,11 +865,28 @@ function StateChangeItem({ stateChange }: { stateChange: SimulationStateChange }
         aria-expanded={isExpanded}
       >
         <div className="flex items-start gap-2">
-          <div className="font-medium">{contractDisplay}</div>
+          {stateChange.key.startsWith('0x') && (
+            <div className="text-xs bg-muted-foreground/10 px-2 py-1 rounded text-muted-foreground">
+              Balance
+            </div>
+          )}
         </div>
         <div className="flex items-center gap-2">
-          <code className="text-xs bg-muted-foreground/20 px-1 py-0.5 rounded">
-            {stateChange.key}
+          <code className="text-xs bg-muted-foreground/20 px-2 py-1 rounded">
+            {stateChange.key.startsWith('0x') ? (
+              <a
+                href={`https://etherscan.io/address/${stateChange.key}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="hover:underline inline-flex items-center"
+                onClick={(e) => e.stopPropagation()} // Prevent toggling when clicking the link
+              >
+                {stateChange.key}
+                <ExternalLinkIcon className="h-3 w-3 ml-1" />
+              </a>
+            ) : (
+              stateChange.key
+            )}
           </code>
           {isExpanded ? (
             <ChevronUpIcon className="h-4 w-4 text-muted-foreground" />

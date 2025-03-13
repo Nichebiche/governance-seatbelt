@@ -177,7 +177,7 @@ function ProposalCard({
   return (
     <Card className={`w-full ${className || ''} border border-muted`}>
       <CardHeader className="px-6">
-        <CardTitle>{proposal.description}</CardTitle>
+        <CardTitle>Proposal Creation</CardTitle>
         <CardDescription>Transaction Parameters</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4 pt-0 px-6">

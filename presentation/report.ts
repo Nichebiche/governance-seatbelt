@@ -183,14 +183,29 @@ function generateStructuredReport(
   // Look for state changes in the check results
   for (const checkId in checks) {
     const { result } = checks[checkId];
+
+    // Track the current contract name and address
+    let currentContract = '';
+    let currentContractAddress = '';
+
     for (const infoMsg of result.info) {
+      // Check if this is a contract name line
+      const contractNameMatch = infoMsg.match(/- (.+?) at `(0x[a-fA-F0-9]{40})`/);
+      if (contractNameMatch) {
+        currentContract = contractNameMatch[1].trim();
+        currentContractAddress = contractNameMatch[2];
+        continue;
+      }
+
       // Try to extract state changes from info messages
       const stateChangeMatch = infoMsg.match(
         /`(.+?)`\s+key\s+`(.+?)`\s+changed\s+from\s+`(.+?)`\s+to\s+`(.+?)`/,
       );
       if (stateChangeMatch) {
+        // Use the current contract name and address if available
         stateChanges.push({
-          contract: stateChangeMatch[1],
+          contract: currentContract || stateChangeMatch[1],
+          contractAddress: currentContractAddress || undefined,
           key: stateChangeMatch[2],
           oldValue: stateChangeMatch[3],
           newValue: stateChangeMatch[4],
