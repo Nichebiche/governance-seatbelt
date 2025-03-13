@@ -50,7 +50,7 @@ export default function Home() {
         <ProposalSection isConnected={isConnected} />
       </ErrorBoundary>
 
-      <Toaster position="bottom-right" />
+      <Toaster position="bottom-right" closeButton />
     </div>
   );
 }
@@ -241,16 +241,20 @@ function ProposalCard({
           <CheckCircleIcon className="h-4 w-4 mr-2 text-green-500" />
           Ready to propose
         </div>
-        {isConnected && (
-          <Button
-            onClick={onPropose}
-            disabled={isPending || isPendingConfirmation}
-            size="lg"
-            className="ml-6 px-6 font-medium cursor-pointer"
-          >
-            {isPendingConfirmation ? 'Confirming...' : isPending ? 'Creating...' : 'Propose'}
-          </Button>
-        )}
+        <Button
+          onClick={onPropose}
+          disabled={isPending || isPendingConfirmation || !isConnected}
+          size="lg"
+          className="ml-6 px-6 font-medium cursor-pointer"
+        >
+          {!isConnected
+            ? 'Connect Wallet'
+            : isPendingConfirmation
+              ? 'Confirming...'
+              : isPending
+                ? 'Creating...'
+                : 'Propose'}
+        </Button>
       </CardFooter>
     </Card>
   );
