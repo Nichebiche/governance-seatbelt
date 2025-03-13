@@ -99,63 +99,91 @@ function ProposalSection({ isConnected }: { isConnected: boolean }) {
 
   // Show proposal and propose button if we have data
   return (
-    <>
-      <ProposalCard proposal={proposal} />
-
-      {isConnected && (
-        <Button
-          onClick={handlePropose}
-          disabled={isPending || isPendingConfirmation}
-          className="cursor-pointer"
-        >
-          {isPendingConfirmation ? 'Confirming...' : isPending ? 'Creating Proposal...' : 'Propose'}
-        </Button>
-      )}
-    </>
+    <div className="w-full space-y-6">
+      <ProposalCard
+        proposal={proposal}
+        onPropose={handlePropose}
+        isPending={isPending}
+        isPendingConfirmation={isPendingConfirmation}
+        isConnected={isConnected}
+      />
+    </div>
   );
 }
 
-function ProposalCard({ proposal }: { proposal: Proposal }) {
+function ProposalCard({
+  proposal,
+  onPropose,
+  isPending,
+  isPendingConfirmation,
+  isConnected,
+}: {
+  proposal: Proposal;
+  onPropose: () => void;
+  isPending: boolean;
+  isPendingConfirmation: boolean;
+  isConnected: boolean;
+}) {
+  // Helper function to display empty values consistently
+  const displayValue = (value: string | string[]) => {
+    if (Array.isArray(value)) {
+      return value.length === 0 || (value.length === 1 && value[0] === '')
+        ? '(empty)'
+        : value.join(', ');
+    }
+    return value === '' ? '(empty)' : value;
+  };
+
   return (
     <Card className="w-full">
       <CardHeader>
         <CardTitle>{proposal.description}</CardTitle>
-        <CardDescription>Proposal details</CardDescription>
+        <CardDescription>Transaction Parameters</CardDescription>
       </CardHeader>
-      <CardContent className="space-y-4">
+      <CardContent className="space-y-4 pt-0">
         <div>
-          <h3 className="font-semibold text-sm">Targets:</h3>
-          <p className="font-mono text-sm break-all bg-gray-50 p-2 rounded">
-            {proposal.targets.join(', ')}
+          <h3 className="font-medium text-sm mb-2">Target Contracts</h3>
+          <p className="font-mono text-sm break-all bg-muted p-3 rounded-md min-h-[40px] flex items-center">
+            {displayValue(proposal.targets)}
           </p>
         </div>
 
         <div>
-          <h3 className="font-semibold text-sm">Values:</h3>
-          <p className="font-mono text-sm bg-gray-50 p-2 rounded">
-            {proposal.values.map((v) => v.toString()).join(', ')}
+          <h3 className="font-medium text-sm mb-2">ETH Values</h3>
+          <p className="font-mono text-sm bg-muted p-3 rounded-md min-h-[40px] flex items-center">
+            {displayValue(proposal.values.map((v) => v.toString()))}
           </p>
         </div>
 
         <div>
-          <h3 className="font-semibold text-sm">Signatures:</h3>
-          <p className="font-mono text-sm bg-gray-50 p-2 rounded">
-            {proposal.signatures.join(', ')}
+          <h3 className="font-medium text-sm mb-2">Function Signatures</h3>
+          <p className="font-mono text-sm bg-muted p-3 rounded-md min-h-[40px] flex items-center">
+            {displayValue(proposal.signatures)}
           </p>
         </div>
 
         <div>
-          <h3 className="font-semibold text-sm">Calldatas:</h3>
-          <p className="font-mono text-sm break-all bg-gray-50 p-2 rounded">
-            {proposal.calldatas.join(', ')}
+          <h3 className="font-medium text-sm mb-2">Encoded Function Data</h3>
+          <p className="font-mono text-sm break-all bg-muted p-3 rounded-md min-h-[40px] flex items-center">
+            {displayValue(proposal.calldatas)}
           </p>
         </div>
       </CardContent>
-      <CardFooter>
-        <div className="flex items-center text-sm text-gray-500">
+      <CardFooter className="flex justify-between items-center border-t pt-4">
+        <div className="flex items-center text-sm text-muted-foreground">
           <CheckCircleIcon className="h-4 w-4 mr-2 text-green-500" />
           Ready to propose
         </div>
+        {isConnected && (
+          <Button
+            onClick={onPropose}
+            disabled={isPending || isPendingConfirmation}
+            size="lg"
+            className="cursor-pointer"
+          >
+            {isPendingConfirmation ? 'Confirming...' : isPending ? 'Creating...' : 'Propose'}
+          </Button>
+        )}
       </CardFooter>
     </Card>
   );
