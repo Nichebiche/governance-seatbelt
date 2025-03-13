@@ -107,21 +107,21 @@ function ProposalSection({ isConnected }: { isConnected: boolean }) {
   // Show proposal and report if we have data
   return (
     <div className="w-full space-y-6">
-      <div className="grid grid-cols-1 md:grid-cols-5 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-5 gap-8">
         {/* Proposal Card - Right on desktop, Top on mobile */}
-        <div className="md:col-span-2 md:order-2 order-1 flex flex-col">
+        <div className="md:col-span-2 md:order-2 order-1 flex flex-col h-fit">
           <ProposalCard
             proposal={proposalData}
             onPropose={handlePropose}
             isPending={isPending}
             isPendingConfirmation={isPendingConfirmation}
             isConnected={isConnected}
-            className="md:sticky md:top-4 self-start"
+            className="md:sticky md:top-4 self-start w-full"
           />
         </div>
 
         {/* Report Card - Left on desktop, Bottom on mobile */}
-        <div className="md:col-span-3 md:order-1 order-2">
+        <div className="md:col-span-3 md:order-1 order-2 md:sticky md:top-4 h-fit">
           {report.structuredReport ? (
             <StructuredReport report={report.structuredReport} />
           ) : (
@@ -175,7 +175,7 @@ function ProposalCard({
     : proposal.calldatas[0];
 
   return (
-    <Card className={`w-full ${className || ''}`}>
+    <Card className={`w-full ${className || ''} border border-muted`}>
       <CardHeader className="px-6">
         <CardTitle>{proposal.description}</CardTitle>
         <CardDescription>Transaction Parameters</CardDescription>

@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import type React from 'react';
+import { useState, useMemo } from 'react';
 import Link from 'next/link';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -24,7 +25,7 @@ interface StructuredReportProps {
 
 export function StructuredReport({ report }: StructuredReportProps) {
   return (
-    <div className="w-full">
+    <div className="w-full border border-muted rounded-md p-6">
       <div className="mb-6">
         <h2 className="text-2xl font-bold">{report.title}</h2>
         <div className="flex items-center mt-2">
@@ -57,99 +58,113 @@ export function StructuredReport({ report }: StructuredReportProps) {
 
       <Tabs defaultValue="overview" className="w-full">
         <TabsList className="grid w-full grid-cols-3 mb-4">
-          <TabsTrigger value="overview">Overview</TabsTrigger>
-          <TabsTrigger value="checks">Checks</TabsTrigger>
-          <TabsTrigger value="state-changes">State Changes</TabsTrigger>
+          <TabsTrigger className="cursor-pointer" value="overview">
+            Overview
+          </TabsTrigger>
+          <TabsTrigger className="cursor-pointer" value="checks">
+            Checks
+          </TabsTrigger>
+          <TabsTrigger className="cursor-pointer" value="state-changes">
+            State Changes
+          </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="overview" className="mt-4 space-y-6">
-          {report.proposalText && (
-            <div className="border border-muted rounded-md p-6 bg-card">
-              <h3 className="text-lg font-semibold mb-3">Proposal Details</h3>
-              <div className="bg-muted p-4 rounded-md whitespace-pre-wrap">
-                {report.proposalText}
-              </div>
-            </div>
-          )}
-
-          {report.calldata && (
-            <div className="border border-muted rounded-md p-6 bg-card">
-              <h3 className="text-lg font-semibold mb-3">Calldata Decoded</h3>
-              <div className="bg-muted p-4 rounded-md font-mono text-sm overflow-x-auto">
-                {report.calldata.decoded}
-              </div>
-            </div>
-          )}
-
-          <div className="border border-muted rounded-md p-6 bg-card">
-            <h3 className="text-lg font-semibold mb-3">Metadata</h3>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="bg-muted p-3 rounded-md">
-                <div className="text-sm text-muted-foreground">Block Number</div>
-                <div className="font-medium">{report.metadata.blockNumber}</div>
-              </div>
-              <div className="bg-muted p-3 rounded-md">
-                <div className="text-sm text-muted-foreground">Timestamp</div>
-                <div className="font-medium">
-                  {new Date(Number.parseInt(report.metadata.timestamp) * 1000).toLocaleString()}
+        <div className="h-[600px] overflow-y-auto relative">
+          <TabsContent
+            value="overview"
+            className="mt-4 space-y-6 absolute inset-0 overflow-y-auto pb-8 px-1"
+          >
+            {report.proposalText && (
+              <div className="border border-muted rounded-md p-6 bg-card">
+                <h3 className="text-lg font-semibold mb-3">Proposal Details</h3>
+                <div className="bg-muted p-4 rounded-md whitespace-pre-wrap">
+                  {report.proposalText}
                 </div>
               </div>
-              <div className="bg-muted p-3 rounded-md">
-                <div className="text-sm text-muted-foreground">Proposal ID</div>
-                <div className="font-medium">{report.metadata.proposalId}</div>
+            )}
+
+            {report.calldata && (
+              <div className="border border-muted rounded-md p-6 bg-card">
+                <h3 className="text-lg font-semibold mb-3">Calldata Decoded</h3>
+                <div className="bg-muted p-4 rounded-md font-mono text-sm overflow-x-auto">
+                  {report.calldata.decoded}
+                </div>
               </div>
-              <div className="bg-muted p-3 rounded-md">
-                <div className="text-sm text-muted-foreground">Proposer</div>
-                <div className="font-medium font-mono text-xs truncate">
-                  <a
-                    href={`https://etherscan.io/address/${report.metadata.proposer}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-blue-600 hover:underline inline-flex items-center cursor-pointer"
-                  >
-                    {report.metadata.proposer}
-                    <ExternalLinkIcon className="h-3 w-3 ml-1" />
-                  </a>
+            )}
+
+            <div className="border border-muted rounded-md p-6 bg-card">
+              <h3 className="text-lg font-semibold mb-3">Metadata</h3>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="bg-muted p-3 rounded-md">
+                  <div className="text-sm text-muted-foreground">Block Number</div>
+                  <div className="font-medium">
+                    <a
+                      href={`https://etherscan.io/block/${report.metadata.blockNumber}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="font-mono text-xs bg-muted-foreground/10 px-1 py-0.5 rounded hover:underline inline-flex items-center"
+                    >
+                      {report.metadata.blockNumber}
+                      <ExternalLinkIcon className="h-3 w-3 ml-1" />
+                    </a>
+                  </div>
+                </div>
+                <div className="bg-muted p-3 rounded-md">
+                  <div className="text-sm text-muted-foreground">Timestamp</div>
+                  <div className="font-medium">
+                    {new Date(Number.parseInt(report.metadata.timestamp) * 1000).toLocaleString()}
+                  </div>
+                </div>
+                <div className="bg-muted p-3 rounded-md">
+                  <div className="text-sm text-muted-foreground">Proposal ID</div>
+                  <div className="font-medium">{report.metadata.proposalId}</div>
+                </div>
+                <div className="bg-muted p-3 rounded-md">
+                  <div className="text-sm text-muted-foreground">Network</div>
+                  <div className="font-medium">Ethereum</div>
                 </div>
               </div>
             </div>
-          </div>
-        </TabsContent>
+          </TabsContent>
 
-        <TabsContent value="checks" className="mt-4">
-          <div className="space-y-4">
-            {report.checks.length === 0 ? (
-              <div className="flex items-center justify-center p-6 text-muted-foreground border border-muted rounded-md">
-                <InfoIcon className="h-4 w-4 mr-2" />
-                <span>No checks found in the report</span>
-              </div>
-            ) : (
-              report.checks.map((check, index) => (
-                <ExpandableCheckItem key={`check-${check.title}-${index}`} check={check} />
-              ))
-            )}
-          </div>
-        </TabsContent>
+          <TabsContent value="checks" className="mt-4 absolute inset-0 overflow-y-auto pb-8 px-1">
+            <div className="space-y-4">
+              {report.checks.length === 0 ? (
+                <div className="flex items-center justify-center p-6 text-muted-foreground border border-muted rounded-md">
+                  <InfoIcon className="h-4 w-4 mr-2" />
+                  <span>No checks found in the report</span>
+                </div>
+              ) : (
+                report.checks.map((check, index) => (
+                  <ExpandableCheckItem key={`check-${check.title}-${index}`} check={check} />
+                ))
+              )}
+            </div>
+          </TabsContent>
 
-        <TabsContent value="state-changes" className="mt-4">
-          <div className="space-y-4">
-            {report.stateChanges.length === 0 ? (
-              <div className="flex items-center justify-center p-6 text-muted-foreground border border-muted rounded-md">
-                <InfoIcon className="h-4 w-4 mr-2" />
-                <span>No state changes found in the report</span>
-              </div>
-            ) : (
-              <div className="space-y-3">
-                {report.stateChanges.map((change, index) => (
-                  <StateChangeItem
-                    key={`state-${change.contract}-${change.key}-${index}`}
-                    stateChange={change}
-                  />
-                ))}
-              </div>
-            )}
-          </div>
-        </TabsContent>
+          <TabsContent
+            value="state-changes"
+            className="mt-4 absolute inset-0 overflow-y-auto pb-8 px-1"
+          >
+            <div className="space-y-4">
+              {report.stateChanges.length === 0 ? (
+                <div className="flex items-center justify-center p-6 text-muted-foreground border border-muted rounded-md">
+                  <InfoIcon className="h-4 w-4 mr-2" />
+                  <span>No state changes found in the report</span>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {report.stateChanges.map((change, index) => (
+                    <StateChangeItem
+                      key={`state-${change.contract}-${change.key}-${index}`}
+                      stateChange={change}
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
+          </TabsContent>
+        </div>
       </Tabs>
     </div>
   );
@@ -191,6 +206,260 @@ function ExpandableCheckItem({ check }: { check: SimulationCheck }) {
     setIsExpanded(!isExpanded);
   };
 
+  // Check if this is a state changes check
+  const isStateChangesCheck = check.title.toLowerCase().includes('state changes');
+
+  // Parse state changes from the details if this is a state changes check
+  const parseStateChanges = (details?: string) => {
+    if (!details || !isStateChangesCheck) return [];
+
+    const stateChanges: SimulationStateChange[] = [];
+    const lines = details.split('\n');
+
+    let currentContract = '';
+
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
+
+      // Extract contract name
+      if (line.includes('at `0x')) {
+        const match = line.match(/(.+) at `(0x[a-fA-F0-9]{40})`/);
+        if (match) {
+          currentContract = match[1].trim();
+        }
+      }
+
+      // Extract state changes
+      if (line.includes('key `') && line.includes('changed from')) {
+        const keyMatch = line.match(/`(.+)` changed from `(.+)` to `(.+)`/);
+        if (keyMatch && currentContract) {
+          stateChanges.push({
+            contract: currentContract,
+            key: keyMatch[1],
+            oldValue: keyMatch[2],
+            newValue: keyMatch[3],
+          });
+        }
+      }
+    }
+
+    return stateChanges;
+  };
+
+  // Format the details content as React components
+  const FormattedDetails = useMemo(() => {
+    if (!check.details) return null;
+
+    // Remove all markdown formatting
+    const cleanedDetails = check.details
+      .replace(/\*\*Info\*\*:\s*/g, '')
+      .replace(/\*\*Warnings\*\*:\s*/g, '')
+      .replace(/\*\*([^*]+)\*\*:/g, '$1:');
+
+    // Split by lines to process each line
+    const lines = cleanedDetails.split('\n').filter((line) => line.trim() !== '');
+
+    return (
+      <>
+        {lines.map((line, index) => {
+          // Remove any leading hyphens from all lines
+          const cleanedLine = line.replace(/^-\s*/, '');
+
+          // Process line to replace addresses with links
+          const parts: React.ReactNode[] = [];
+          let lastIndex = 0;
+          const addressRegex = /`(0x[a-fA-F0-9]{40})`/g;
+          let match: RegExpExecArray | null;
+
+          // Check if this is a target line
+          const isTargetLine =
+            cleanedLine.includes('Contract (verified)') ||
+            cleanedLine.includes('EOA (verification not applicable)') ||
+            cleanedLine.includes('Contract (looks safe)') ||
+            cleanedLine.includes('Trusted contract');
+
+          if (isTargetLine) {
+            // Extract target address from the line - handle different formats
+            const targetMatch =
+              cleanedLine.match(/\[`(0x[a-fA-F0-9]{40})`\]/) ||
+              cleanedLine.match(/at `(0x[a-fA-F0-9]{40})`/);
+            if (targetMatch) {
+              const address = targetMatch[1];
+              // Get the contract status
+              let status = 'Unknown';
+              if (cleanedLine.includes('Contract (verified)')) status = 'Contract (verified)';
+              else if (cleanedLine.includes('EOA (verification not applicable)')) status = 'EOA';
+              else if (cleanedLine.includes('Contract (looks safe)'))
+                status = 'Contract (looks safe)';
+              else if (cleanedLine.includes('Trusted contract')) status = 'Trusted contract';
+
+              // Format the target with proper styling
+              return (
+                <div key={`target-${address}`} className="mb-3">
+                  <div className="flex items-center flex-wrap">
+                    <span className="mr-2">{cleanedLine.includes('at `') ? '' : 'Target:'}</span>
+                    <a
+                      href={`https://etherscan.io/address/${address}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="font-mono text-xs bg-muted p-2 rounded hover:underline inline-flex items-center"
+                    >
+                      {address}
+                      <ExternalLinkIcon className="h-3 w-3 ml-1" />
+                    </a>
+                    <span className="ml-2 text-muted-foreground text-xs">{status}</span>
+                  </div>
+                </div>
+              );
+            }
+          }
+
+          // Check if this is an event line
+          const isEventLine =
+            cleanedLine.includes('`') &&
+            (cleanedLine.includes('Transfer(') ||
+              cleanedLine.includes('Approval(') ||
+              (cleanedLine.includes('(') &&
+                cleanedLine.includes(')') &&
+                cleanedLine.includes(':')));
+
+          // Check if this is a calldata line
+          const isCalldataLine =
+            cleanedLine.includes('transfers') && cleanedLine.includes('UNI to');
+
+          if (isCalldataLine) {
+            // Format calldata as code and remove any backticks
+            const formattedLine = cleanedLine.replace(/`/g, '');
+
+            // Extract addresses from the calldata line
+            const fromAddressMatch = formattedLine.match(/(0x[a-fA-F0-9]{40}) transfers/);
+            const toAddressMatch = formattedLine.match(/UNI to (0x[a-fA-F0-9]{40})/);
+
+            if (fromAddressMatch && toAddressMatch) {
+              const fromAddress = fromAddressMatch[1];
+              const toAddress = toAddressMatch[1];
+              const amountMatch = formattedLine.match(/transfers ([0-9.]+) UNI/);
+              const amount = amountMatch ? amountMatch[1] : '';
+
+              return (
+                <div key={`calldata-${formattedLine.substring(0, 30)}`} className="mb-3">
+                  <code className="block font-mono text-xs bg-muted p-3 rounded whitespace-pre-wrap overflow-x-auto">
+                    <span className="flex flex-wrap gap-2 items-center">
+                      <a
+                        href={`https://etherscan.io/address/${fromAddress}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="font-mono text-xs bg-muted-foreground/10 px-1 py-0.5 rounded hover:underline inline-flex items-center"
+                      >
+                        {fromAddress}
+                        <ExternalLinkIcon className="h-3 w-3 ml-1" />
+                      </a>
+                      <span>transfers</span>
+                      <span className="font-bold">{amount} UNI</span>
+                      <span>to</span>
+                      <a
+                        href={`https://etherscan.io/address/${toAddress}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="font-mono text-xs bg-muted-foreground/10 px-1 py-0.5 rounded hover:underline inline-flex items-center"
+                      >
+                        {toAddress}
+                        <ExternalLinkIcon className="h-3 w-3 ml-1" />
+                      </a>
+                    </span>
+                  </code>
+                </div>
+              );
+            }
+
+            // Fallback if we can't parse the addresses
+            return (
+              <div key={`calldata-${formattedLine.substring(0, 30)}`} className="mb-3">
+                <code className="block font-mono text-xs bg-muted p-3 rounded whitespace-pre-wrap overflow-x-auto">
+                  {formattedLine}
+                </code>
+              </div>
+            );
+          }
+
+          if (isEventLine) {
+            // Format event as code
+            const eventMatch = cleanedLine.match(/`([^`]+)`/);
+            if (eventMatch) {
+              const eventText = eventMatch[1];
+
+              // Format the event with proper styling
+              return (
+                <div key={`event-${eventText.substring(0, 30)}-${index}`} className="mb-3">
+                  <code className="block font-mono text-xs bg-muted p-3 rounded whitespace-pre-wrap overflow-x-auto">
+                    {eventText}
+                  </code>
+                </div>
+              );
+            }
+          }
+
+          // Use a different approach to avoid assignment in the while condition
+          match = addressRegex.exec(cleanedLine);
+          while (match !== null) {
+            // Add text before the match
+            if (match.index > lastIndex) {
+              parts.push(cleanedLine.substring(lastIndex, match.index));
+            }
+
+            // Add the address as a link
+            const address = match[1];
+            parts.push(
+              <a
+                key={`address-${address}-${match.index}`}
+                href={`https://etherscan.io/address/${address}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="font-mono text-xs bg-muted-foreground/10 px-1 py-0.5 rounded hover:underline inline-flex items-center"
+              >
+                {address}
+                <ExternalLinkIcon className="h-3 w-3 ml-1" />
+              </a>,
+            );
+
+            lastIndex = match.index + match[0].length;
+            match = addressRegex.exec(cleanedLine);
+          }
+
+          // Add remaining text
+          if (lastIndex < cleanedLine.length) {
+            parts.push(cleanedLine.substring(lastIndex));
+          }
+
+          // For simple informational lines like "No ETH is required..."
+          if (
+            cleanedLine.includes('No ETH is required') ||
+            cleanedLine.includes('No ETH transfers detected') ||
+            (parts.length === 1 && typeof parts[0] === 'string' && !cleanedLine.includes('`'))
+          ) {
+            return (
+              <div
+                key={`info-${cleanedLine.substring(0, 30).replace(/\s+/g, '-')}`}
+                className="mb-3"
+              >
+                <p className="text-muted-foreground">{parts.length > 0 ? parts : cleanedLine}</p>
+              </div>
+            );
+          }
+
+          return (
+            <p key={`line-${index}-${cleanedLine.substring(0, 20)}`} className="mb-2">
+              {parts.length > 0 ? parts : cleanedLine}
+            </p>
+          );
+        })}
+      </>
+    );
+  }, [check.details]);
+
+  const stateChanges = parseStateChanges(check.details);
+  const hasStateChanges = stateChanges.length > 0;
+
   return (
     <div className="border border-muted rounded-md overflow-hidden">
       <button
@@ -215,7 +484,18 @@ function ExpandableCheckItem({ check }: { check: SimulationCheck }) {
       </button>
       {isExpanded && check.details && (
         <div className="p-5 pt-0 pl-11 text-sm border-t border-muted bg-muted/10">
-          <div className="mt-4 whitespace-pre-wrap">{check.details}</div>
+          {hasStateChanges ? (
+            <div className="mt-4 space-y-3">
+              {stateChanges.map((change, index) => (
+                <StateChangeItem
+                  key={`check-state-${change.contract}-${change.key}-${index}`}
+                  stateChange={change}
+                />
+              ))}
+            </div>
+          ) : (
+            <div className="mt-4 whitespace-pre-wrap">{FormattedDetails}</div>
+          )}
         </div>
       )}
     </div>
@@ -229,6 +509,22 @@ function StateChangeItem({ stateChange }: { stateChange: SimulationStateChange }
     setIsExpanded(!isExpanded);
   };
 
+  // Create a clickable contract name if contractAddress is available
+  const contractDisplay = stateChange.contractAddress ? (
+    <a
+      href={`https://etherscan.io/address/${stateChange.contractAddress}`}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="font-mono text-xs bg-muted-foreground/10 px-1 py-0.5 rounded hover:underline inline-flex items-center"
+      onClick={(e) => e.stopPropagation()} // Prevent toggling when clicking the link
+    >
+      {stateChange.contract}
+      <ExternalLinkIcon className="h-3 w-3 ml-1" />
+    </a>
+  ) : (
+    stateChange.contract
+  );
+
   return (
     <div className="border border-muted rounded-md overflow-hidden">
       <button
@@ -238,7 +534,7 @@ function StateChangeItem({ stateChange }: { stateChange: SimulationStateChange }
         aria-expanded={isExpanded}
       >
         <div className="flex items-start gap-2">
-          <div className="font-medium">{stateChange.contract}</div>
+          <div className="font-medium">{contractDisplay}</div>
         </div>
         <div className="flex items-center gap-2">
           <code className="text-xs bg-muted-foreground/20 px-1 py-0.5 rounded">
