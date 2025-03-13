@@ -1,23 +1,23 @@
-import type React from 'react';
-import { useState, useMemo } from 'react';
-import Link from 'next/link';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import type {
+  SimulationCheck,
+  SimulationEvent,
+  SimulationStateChange,
+  StructuredSimulationReport,
+} from '@/hooks/use-simulation-results';
 import {
-  CheckCircleIcon,
   AlertTriangleIcon,
-  InfoIcon,
-  ExternalLinkIcon,
+  CheckCircleIcon,
   ChevronDownIcon,
   ChevronUpIcon,
+  ExternalLinkIcon,
+  InfoIcon,
 } from 'lucide-react';
-import type {
-  StructuredSimulationReport,
-  SimulationCheck,
-  SimulationStateChange,
-  SimulationEvent,
-} from '@/hooks/use-simulation-results';
+import Link from 'next/link';
+import type React from 'react';
+import { useMemo, useState } from 'react';
 
 // Create a new StateChanges component for reuse
 interface StateChangesProps {
@@ -213,7 +213,7 @@ export function StructuredReport({ report }: StructuredReportProps) {
                   <span>No checks found in the report</span>
                 </div>
               ) : (
-                report.checks.map((check, index) => (
+                report.checks.map((check: SimulationCheck, index: number) => (
                   <ExpandableCheckItem
                     key={`check-${check.title}-${index}`}
                     check={check}
@@ -308,15 +308,18 @@ function ExpandableCheckItem({
     const cleanedDetails = preprocessedDetails.replace(/\*\*([^*]+)\*\*:/g, '$1:');
 
     // Split by lines to process each line
-    const lines = cleanedDetails.split('\n').filter((line) => line.trim() !== '');
+    const lines = cleanedDetails.split('\n').filter((line: string) => line.trim() !== '');
 
     if (isStateChangesCheck) {
-      return stateChanges ? <StateChanges stateChanges={stateChanges} /> : null;
+      // Only return StateChanges if stateChanges exists and is not empty
+      return stateChanges && stateChanges.length > 0 ? (
+        <StateChanges stateChanges={stateChanges} />
+      ) : null;
     }
 
     return (
       <>
-        {lines.map((line, index) => {
+        {lines.map((line: string, index: number) => {
           // Final cleanup for any remaining Info prefixes
           let processedLine = line
             .replace(/^\*\*Info\*\*:\s*/, '')
@@ -588,7 +591,7 @@ function ExpandableCheckItem({
         <div className="p-5 pt-0 pl-11 text-sm border-t border-muted bg-muted/10">
           {isStateChangesCheck ? (
             <div className="mt-4">
-              {stateChanges ? (
+              {stateChanges && stateChanges.length > 0 ? (
                 <StateChanges stateChanges={stateChanges} />
               ) : (
                 <div className="flex items-center justify-center p-6 text-muted-foreground">

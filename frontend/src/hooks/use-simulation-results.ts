@@ -1,7 +1,7 @@
-import type { Address } from 'viem';
-import { useQuery } from '@tanstack/react-query';
 import type { Report } from '@/components/ReportCard';
+import { useQuery } from '@tanstack/react-query';
 import { useCallback } from 'react';
+import type { Address } from 'viem';
 
 export interface Proposal {
   id: string;
@@ -60,16 +60,16 @@ export interface StructuredSimulationReport {
     blockNumber: string;
     timestamp: string;
     proposalId: string;
-    proposer: string;
+    proposer: Address;
   };
 }
 
 export interface SimulationResponse {
   proposalData: {
-    targets: string[];
+    targets: Address[];
     values: string[];
-    signatures: string[];
-    calldatas: string[];
+    signatures: `0x${string}`[];
+    calldatas: `0x${string}`[];
     description: string;
   };
   report: {

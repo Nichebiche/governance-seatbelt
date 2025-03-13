@@ -1,6 +1,6 @@
-import { NextResponse } from 'next/server';
 import fs from 'node:fs';
 import path from 'node:path';
+import { NextResponse } from 'next/server';
 
 // Helper function to read the simulation results file
 function readSimulationResults() {

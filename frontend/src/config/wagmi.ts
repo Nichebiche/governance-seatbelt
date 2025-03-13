@@ -1,7 +1,7 @@
 import { getDefaultConfig } from '@rainbow-me/rainbowkit';
-import { mainnet } from 'wagmi/chains';
 import { QueryClient } from '@tanstack/react-query';
 import { http } from 'viem';
+import { mainnet } from 'wagmi/chains';
 
 const mainnetRpcUrl = process.env.NEXT_PUBLIC_MAINNET_RPC_URL;
 if (!mainnetRpcUrl) {

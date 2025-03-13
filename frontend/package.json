@@ -6,7 +6,12 @@
     "dev": "next dev --turbopack",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "typecheck": "tsc --noEmit",
+    "format": "biome format .",
+    "format:fix": "biome format --write .",
+    "check": "bun run typecheck && biome check",
+    "check:fix": "bun run typecheck && biome check --write"
   },
   "dependencies": {
     "@radix-ui/react-accordion": "^1.2.3",
@@ -29,6 +34,7 @@
     "wagmi": "^2.14.13"
   },
   "devDependencies": {
+    "@biomejs/biome": "1.9.4",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/react": "^19",

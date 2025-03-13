@@ -18,14 +18,30 @@
         "noNonNullAssertion": "off"
       }
     },
-    "ignore": ["node_modules/**", "frontend/"]
+    "ignore": [
+      "node_modules/**",
+      ".next/**",
+      "src/components/ui/**",
+      "src/app/**",
+      "src/hooks/**",
+      "src/context/**",
+      "src/lib/**"
+    ]
   },
   "formatter": {
     "enabled": true,
     "indentStyle": "space",
     "indentWidth": 2,
     "lineWidth": 100,
-    "ignore": ["node_modules/**", "frontend/"]
+    "ignore": [
+      "node_modules/**",
+      ".next/**",
+      "src/components/ui/**",
+      "src/app/**",
+      "src/hooks/**",
+      "src/context/**",
+      "src/lib/**"
+    ]
   },
   "javascript": {
     "formatter": {
@@ -36,14 +52,19 @@
   "files": {
     "ignore": [
       "node_modules",
-      "frontend/",
+      ".next",
       "dist",
       "build",
       ".git",
       "reports",
       "*.json",
       "*.md",
-      "*.lock"
+      "*.lock",
+      "src/components/ui/**",
+      "src/app/**",
+      "src/hooks/**",
+      "src/context/**",
+      "src/lib/**"
     ]
   }
 }

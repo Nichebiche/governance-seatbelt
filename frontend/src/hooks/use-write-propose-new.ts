@@ -1,9 +1,9 @@
 import { DEFAULT_GOVERNOR_ADDRESS, GOVERNOR_ABI } from '@/config';
-import { usePublicClient, useWriteContract } from 'wagmi';
-import { useSimulationResults } from './use-simulation-results';
-import { toast } from 'sonner';
 import { parseWeb3Error } from '@/lib/errors';
 import { useMutation } from '@tanstack/react-query';
+import { toast } from 'sonner';
+import { usePublicClient, useWriteContract } from 'wagmi';
+import { useSimulationResults } from './use-simulation-results';
 
 const HIGH_GAS_LIMIT = BigInt(10000000); // 10M gas limit for complex governance operations
 const TOAST_ID = 'proposal-tx'; // Consistent toast ID for updates
@@ -33,7 +33,7 @@ export function useWriteProposeNew() {
         functionName: 'propose',
         args: [
           proposalData.targets,
-          proposalData.values,
+          proposalData.values.map((value) => BigInt(value)),
           proposalData.signatures,
           proposalData.calldatas,
           proposalData.description,

@@ -766,3 +766,20 @@ export interface StructuredSimulationReport {
     proposer: string;
   };
 }
+
+export interface FrontendData {
+  proposalData: {
+    id: string;
+    targets: `0x${string}`[];
+    values: bigint[] | string[];
+    signatures: string[];
+    calldatas: `0x${string}`[];
+    description: string;
+  };
+  report: {
+    status: 'success' | 'warning' | 'error';
+    summary: string;
+    markdownReport: string;
+    structuredReport?: StructuredSimulationReport;
+  };
+}

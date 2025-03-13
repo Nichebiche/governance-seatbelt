@@ -1,12 +1,10 @@
 'use client';
 
-import { useSimulationResults } from '@/hooks/use-simulation-results';
-import { useWriteProposeNew } from '@/hooks/use-write-propose-new';
-import { useAccount } from 'wagmi';
-import { Toaster } from '@/components/ui/sonner';
-import { toast } from 'sonner';
-import { Button } from '@/components/ui/button';
+import { ReportCard } from '@/components/ReportCard';
+import { StructuredReport } from '@/components/StructuredReport';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import {
   Card,
   CardContent,
@@ -15,13 +13,15 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
-import { InfoIcon, AlertTriangleIcon, CheckCircleIcon } from 'lucide-react';
-import { ErrorBoundary } from 'react-error-boundary';
-import { ReportCard } from '@/components/ReportCard';
+import { Toaster } from '@/components/ui/sonner';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Badge } from '@/components/ui/badge';
-import { StructuredReport } from '@/components/StructuredReport';
+import { useSimulationResults } from '@/hooks/use-simulation-results';
+import { useWriteProposeNew } from '@/hooks/use-write-propose-new';
+import { AlertTriangleIcon, CheckCircleIcon, InfoIcon } from 'lucide-react';
 import React from 'react';
+import { ErrorBoundary } from 'react-error-boundary';
+import { toast } from 'sonner';
+import { useAccount } from 'wagmi';
 
 // Fallback component for when the query fails
 function ErrorFallback({ error }: { error: Error }) {

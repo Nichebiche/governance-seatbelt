@@ -1,5 +1,5 @@
 import { GOVERNOR_ABI } from './abis';
-import { config as wagmiConfig, projectId, queryClient } from './wagmi';
+import { projectId, queryClient, config as wagmiConfig } from './wagmi';
 
 // State names for readability
 export const PROPOSAL_STATES = [

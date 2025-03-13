@@ -1,4 +1,6 @@
 import fs, { promises as fsp, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync } from 'node:fs';
+import { join } from 'node:path';
 import type { Block } from '@ethersproject/abstract-provider';
 import type { BigNumber } from 'ethers';
 import { mdToPdf } from 'md-to-pdf';
@@ -15,18 +17,17 @@ import { visit } from 'unist-util-visit';
 import type { Visitor } from 'unist-util-visit';
 import type {
   AllCheckResults,
+  FrontendData,
   GovernorType,
   ProposalEvent,
-  SimulationData,
-  StructuredSimulationReport,
-  SimulationCheck,
-  SimulationStateChange,
-  SimulationEvent,
   SimulationCalldata,
+  SimulationCheck,
+  SimulationData,
+  SimulationEvent,
+  SimulationStateChange,
+  StructuredSimulationReport,
 } from '../types';
 import { formatProposalId } from '../utils/contracts/governor';
-import { join } from 'node:path';
-import { existsSync, mkdirSync } from 'node:fs';
 
 // --- Markdown helpers ---
 
@@ -434,7 +435,7 @@ function remarkFixEmojiLinks() {
  * @notice Write simulation results to frontend public directory for easy access
  * @param data The data to write to the frontend, containing proposalData and report
  */
-export function writeFrontendData(data: Array<{ proposalData: any; report: any }>) {
+export function writeFrontendData(data: FrontendData[]) {
   try {
     // Use the correct path to the frontend/public directory
     const projectRoot = join(__dirname, '..');
