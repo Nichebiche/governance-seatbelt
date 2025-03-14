@@ -6,14 +6,6 @@ import type { FluffyCall, ProposalCheck } from '../types';
 import { fetchTokenMetadata } from '../utils/contracts/erc20';
 import { decodeFunctionWithAbi } from '../utils/clients/etherscan';
 
-// Common function selectors that might fail to decode but are known
-const KNOWN_SELECTORS: Record<string, string> = {
-  '0x79ba5097': 'acceptOwnership',
-  '0x046f7da2': 'resume',
-  '0x095ea7b3': 'approve',
-  '0x59e97475': 'deposit',
-};
-
 /**
  * Decodes proposal target calldata into a human-readable format
  */
@@ -214,14 +206,6 @@ async function prettifyCalldata(call: FluffyCall, target: string, warnings: stri
     warnings.push(
       `Failed to decode function with selector ${selector} for contract ${target} using Etherscan ABI`,
     );
-
-    // Check if this is a known selector
-    if (selector in KNOWN_SELECTORS) {
-      const knownFunction = KNOWN_SELECTORS[selector];
-      console.log(`[DEBUG] Using known selector mapping for ${selector}: ${knownFunction}`);
-      const description = `\`${call.from}\` likely calls \`${knownFunction}()\` on \`${target}\` (inferred from selector)`;
-      return description;
-    }
   } catch (error) {
     console.warn(`Failed to decode using Etherscan ABI for ${target}:`, error);
     warnings.push(
