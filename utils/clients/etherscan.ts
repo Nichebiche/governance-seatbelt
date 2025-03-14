@@ -86,28 +86,8 @@ function getEtherscanApiUrl(chainId: number): string | null {
   switch (chainId) {
     case 1: // Ethereum Mainnet
       return 'https://api.etherscan.io';
-    case 5: // Goerli
-      return 'https://api-goerli.etherscan.io';
-    case 11155111: // Sepolia
-      return 'https://api-sepolia.etherscan.io';
-    case 42161: // Arbitrum
-      return 'https://api.arbiscan.io';
-    case 10: // Optimism
-      return 'https://api-optimistic.etherscan.io';
-    case 137: // Polygon
-      return 'https://api.polygonscan.com';
-    case 56: // BSC
-      return 'https://api.bscscan.com';
-    case 43114: // Avalanche
-      return 'https://api.snowtrace.io';
-    case 8453: // Base
-      return 'https://api.basescan.org';
-    case 324: // zkSync Era
-      return 'https://api.zksync.io/api/v2';
-    case 7777777: // Zora
-      return 'https://api.zorascan.io';
     default:
-      return null;
+      return 'https://api.etherscan.io';
   }
 }
 
