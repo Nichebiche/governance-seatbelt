@@ -140,8 +140,19 @@ function formatArgs(args: unknown[]): string {
 
   return args
     .map((arg) => {
+      if (typeof arg === 'bigint') {
+        return arg.toString();
+      }
       if (typeof arg === 'object' && arg !== null) {
-        return JSON.stringify(arg);
+        try {
+          // Handle objects with BigInt values by converting them to strings
+          return JSON.stringify(arg, (_, value) =>
+            typeof value === 'bigint' ? value.toString() : value,
+          );
+        } catch {
+          // If JSON.stringify fails, return a simple string representation
+          return '[Complex Object]';
+        }
       }
       return String(arg);
     })
