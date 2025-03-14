@@ -4,6 +4,7 @@ import { decodeFunctionData, parseAbiItem, toFunctionSelector } from 'viem';
 import { bullet } from '../presentation/report';
 import type { FluffyCall, ProposalCheck } from '../types';
 import { fetchTokenMetadata } from '../utils/contracts/erc20';
+import { decodeFunctionWithAbi } from '../utils/clients/etherscan';
 
 /**
  * Decodes proposal target calldata into a human-readable format
@@ -132,6 +133,22 @@ function getDescription(target: string, sig: string, call: FluffyCall) {
 }
 
 /**
+ * Format arguments for human-readable display
+ */
+function formatArgs(args: unknown[]): string {
+  if (!args.length) return '';
+
+  return args
+    .map((arg) => {
+      if (typeof arg === 'object' && arg !== null) {
+        return JSON.stringify(arg);
+      }
+      return String(arg);
+    })
+    .join(', ');
+}
+
+/**
  * Given a call, return a human-readable description of the call
  */
 async function prettifyCalldata(call: FluffyCall, target: string) {
@@ -141,20 +158,60 @@ async function prettifyCalldata(call: FluffyCall, target: string) {
     return `\`${call.from}\` transfers ${ethAmount} ETH to \`${target}\` (formatted)`;
   }
 
-  // Handle token transfers
+  // Get the function selector (first 4 bytes of the calldata)
   const selector = call.input.slice(0, 10);
-  const isTokenAction = selector in TOKEN_HANDLERS;
 
+  // Try to decode using Etherscan ABI first
+  try {
+    console.log(
+      `[DEBUG] Trying to decode using Etherscan ABI for ${target} with selector ${selector}`,
+    );
+    const decoded = await decodeFunctionWithAbi(target, call.input as `0x${string}`);
+    if (decoded) {
+      console.log(`[DEBUG] Successfully decoded using Etherscan ABI: ${decoded.name}`);
+
+      // Format the decoded function call
+      let description = `\`${call.from}\` calls \`${decoded.name}(`;
+
+      // Format the arguments
+      const formattedArgs = formatArgs(decoded.args);
+
+      // Add the arguments to the description (if any)
+      if (formattedArgs) {
+        description += formattedArgs;
+      }
+
+      description += `)\` on \`${target}\` (decoded from ABI)`;
+      return description;
+    }
+
+    console.log(`[DEBUG] Failed to decode using Etherscan ABI for ${target}`);
+  } catch (error) {
+    console.warn(`Failed to decode using Etherscan ABI for ${target}:`, error);
+  }
+
+  // Handle token-related actions
+  const isTokenAction = selector in TOKEN_HANDLERS;
   if (isTokenAction) {
+    console.log(`[DEBUG] Using token handler for selector ${selector}`);
     const { symbol, decimals } = await fetchTokenMetadata(call.to);
     return TOKEN_HANDLERS[selector](call, decimals || 0, symbol);
   }
 
+  // Handle common function signatures
+  const isCommonFunction = selector in FUNCTION_HANDLERS;
+  if (isCommonFunction) {
+    console.log(`[DEBUG] Using common function handler for selector ${selector}`);
+    return FUNCTION_HANDLERS[selector](call, target);
+  }
+
   // Generic handling for non-token actions
+  console.log(`[DEBUG] Using generic handling for ${target} with selector ${selector}`);
   const sig = getSignature(call);
   return getDescription(target, sig, call);
 }
 
+// Handlers for token-related function calls
 const TOKEN_HANDLERS: Record<
   string,
   (call: FluffyCall, decimals: number, symbol: string | null) => string
@@ -194,5 +251,30 @@ const TOKEN_HANDLERS: Record<
     });
     const [from, to, value] = args;
     return `\`${call.from}\` transfers ${formatUnits(value, decimals)} ${symbol} from \`${getAddress(from)}\` to \`${getAddress(to)}\` (formatted)`;
+  },
+};
+
+// Handlers for common function signatures
+const FUNCTION_HANDLERS: Record<string, (call: FluffyCall, target: string) => string> = {
+  // acceptOwnership() - 0x79ba5097
+  [toFunctionSelector('acceptOwnership()')]: (call: FluffyCall, target: string) => {
+    return `\`${call.from}\` calls \`acceptOwnership()\` on \`${target}\` to accept ownership transfer (formatted)`;
+  },
+  // resume() - 0x046f7da2
+  [toFunctionSelector('resume()')]: (call: FluffyCall, target: string) => {
+    return `\`${call.from}\` calls \`resume()\` on \`${target}\` to resume operations (formatted)`;
+  },
+  // deposit((address,uint256)[]) - 0x69410738
+  [toFunctionSelector('deposit((address,uint256)[])')]: (call: FluffyCall, target: string) => {
+    try {
+      // Just check if we can decode the function, but don't use the args
+      decodeFunctionData({
+        abi: [parseAbiItem('function deposit(tuple[] amounts)')],
+        data: call.input as `0x${string}`,
+      });
+      return `\`${call.from}\` calls \`deposit(tuple[] amounts)\` on \`${target}\` to deposit assets (formatted)`;
+    } catch {
+      return `\`${call.from}\` calls \`deposit(tuple[] amounts)\` on \`${target}\` (formatted)`;
+    }
   },
 };
