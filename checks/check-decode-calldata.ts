@@ -138,8 +138,14 @@ function getDescription(target: string, sig: string, call: FluffyCall) {
 function formatArgs(args: unknown[]): string {
   if (!args.length) return '';
 
+  // If there's only one argument and it's undefined, return an empty string
+  if (args.length === 1 && args[0] === undefined) {
+    return '';
+  }
+
   return args
     .map((arg) => {
+      if (arg === undefined) return 'undefined';
       if (typeof arg === 'bigint') {
         return arg.toString();
       }
