@@ -100,6 +100,12 @@ function getEtherscanApiUrl(chainId: number): string | null {
       return 'https://api.bscscan.com';
     case 43114: // Avalanche
       return 'https://api.snowtrace.io';
+    case 8453: // Base
+      return 'https://api.basescan.org';
+    case 324: // zkSync Era
+      return 'https://api.zksync.io/api/v2';
+    case 7777777: // Zora
+      return 'https://api.zorascan.io';
     default:
       return null;
   }

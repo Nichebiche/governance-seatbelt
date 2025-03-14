@@ -198,13 +198,6 @@ async function prettifyCalldata(call: FluffyCall, target: string) {
     return TOKEN_HANDLERS[selector](call, decimals || 0, symbol);
   }
 
-  // Handle common function signatures
-  const isCommonFunction = selector in FUNCTION_HANDLERS;
-  if (isCommonFunction) {
-    console.log(`[DEBUG] Using common function handler for selector ${selector}`);
-    return FUNCTION_HANDLERS[selector](call, target);
-  }
-
   // Generic handling for non-token actions
   console.log(`[DEBUG] Using generic handling for ${target} with selector ${selector}`);
   const sig = getSignature(call);
@@ -251,30 +244,5 @@ const TOKEN_HANDLERS: Record<
     });
     const [from, to, value] = args;
     return `\`${call.from}\` transfers ${formatUnits(value, decimals)} ${symbol} from \`${getAddress(from)}\` to \`${getAddress(to)}\` (formatted)`;
-  },
-};
-
-// Handlers for common function signatures
-const FUNCTION_HANDLERS: Record<string, (call: FluffyCall, target: string) => string> = {
-  // acceptOwnership() - 0x79ba5097
-  [toFunctionSelector('acceptOwnership()')]: (call: FluffyCall, target: string) => {
-    return `\`${call.from}\` calls \`acceptOwnership()\` on \`${target}\` to accept ownership transfer (formatted)`;
-  },
-  // resume() - 0x046f7da2
-  [toFunctionSelector('resume()')]: (call: FluffyCall, target: string) => {
-    return `\`${call.from}\` calls \`resume()\` on \`${target}\` to resume operations (formatted)`;
-  },
-  // deposit((address,uint256)[]) - 0x69410738
-  [toFunctionSelector('deposit((address,uint256)[])')]: (call: FluffyCall, target: string) => {
-    try {
-      // Just check if we can decode the function, but don't use the args
-      decodeFunctionData({
-        abi: [parseAbiItem('function deposit(tuple[] amounts)')],
-        data: call.input as `0x${string}`,
-      });
-      return `\`${call.from}\` calls \`deposit(tuple[] amounts)\` on \`${target}\` to deposit assets (formatted)`;
-    } catch {
-      return `\`${call.from}\` calls \`deposit(tuple[] amounts)\` on \`${target}\` (formatted)`;
-    }
   },
 };
