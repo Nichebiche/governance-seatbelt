@@ -46,7 +46,7 @@ export const checkDecodeCalldata: ProposalCheck = {
           call = returnCallOrMatchingSubcall(calldata, call);
         }
 
-        return prettifyCalldata(call, proposal.targets[i]);
+        return prettifyCalldata(call, proposal.targets[i], warnings);
       }),
     );
 
@@ -168,7 +168,7 @@ function formatArgs(args: unknown[]): string {
 /**
  * Given a call, return a human-readable description of the call
  */
-async function prettifyCalldata(call: FluffyCall, target: string) {
+async function prettifyCalldata(call: FluffyCall, target: string, warnings: string[]) {
   // Handle ETH transfers (empty calldata with value)
   if (call.input === '0x' && call.value && BigInt(call.value) > 0n) {
     const ethAmount = formatUnits(call.value, 18);
@@ -203,8 +203,14 @@ async function prettifyCalldata(call: FluffyCall, target: string) {
     }
 
     console.log(`[DEBUG] Failed to decode using Etherscan ABI for ${target}`);
+    warnings.push(
+      `Failed to decode function with selector ${selector} for contract ${target} using Etherscan ABI`,
+    );
   } catch (error) {
     console.warn(`Failed to decode using Etherscan ABI for ${target}:`, error);
+    warnings.push(
+      `Error decoding function with selector ${selector} for contract ${target}: ${error}`,
+    );
   }
 
   // Handle token-related actions
