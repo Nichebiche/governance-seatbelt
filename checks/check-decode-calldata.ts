@@ -6,6 +6,20 @@ import type { FluffyCall, ProposalCheck } from '../types';
 import { fetchTokenMetadata } from '../utils/contracts/erc20';
 import { decodeFunctionWithAbi } from '../utils/clients/etherscan';
 
+// Common function selectors for better error messages
+// This is used only when Etherscan ABI decoding fails
+const COMMON_SELECTORS: Record<string, string> = {
+  '0x79ba5097': 'acceptOwnership',
+  '0x046f7da2': 'resume',
+  '0x095ea7b3': 'approve',
+  '0x59e97475': 'deposit',
+  '0xa9059cbb': 'transfer',
+  '0x23b872dd': 'transferFrom',
+  '0x8da5cb5b': 'owner',
+  '0x715018a6': 'renounceOwnership',
+  '0xf2fde38b': 'transferOwnership',
+};
+
 /**
  * Decodes proposal target calldata into a human-readable format
  */
@@ -118,7 +132,15 @@ function getSignature(call: FluffyCall) {
  */
 function getDescription(target: string, sig: string, call: FluffyCall) {
   let description = `On contract \`${target}\`, call `;
-  if (!call.decoded_input) return `${description} \`${call.input}\` (not decoded)`;
+
+  // If the call is not decoded but the selector is known, provide a better description
+  if (!call.decoded_input) {
+    const selector = call.input.slice(0, 10);
+    if (selector in COMMON_SELECTORS) {
+      return `\`${call.from}\` likely calls \`${COMMON_SELECTORS[selector]}()\` on \`${target}\` (inferred from selector)`;
+    }
+    return `${description} \`${call.input}\` (not decoded)`;
+  }
 
   description += `\`${sig}\` with arguments `;
   call.decoded_input?.forEach((arg, i) => {
