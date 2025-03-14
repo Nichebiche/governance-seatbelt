@@ -40,20 +40,56 @@ export async function fetchContractAbi(address: string, chainId = 1): Promise<Ab
       return null;
     }
 
-    console.log(`[DEBUG] Making API request to Etherscan for ${normalizedAddress}`);
+    // Retry mechanism for API requests
+    const maxRetries = 3;
+    let retryCount = 0;
+    let data: any;
 
-    // Add a small delay before making the API call to avoid rate limiting
-    // Etherscan free API keys are limited to 5 calls per second
-    await delay(300); // 300ms delay to stay under the 5 calls per second limit
+    while (retryCount < maxRetries) {
+      console.log(
+        `[DEBUG] Making API request to Etherscan for ${normalizedAddress} (attempt ${retryCount + 1}/${maxRetries})`,
+      );
 
-    // Fetch the ABI from Etherscan
-    const url = `${apiUrl}/api?module=contract&action=getabi&address=${normalizedAddress}&apikey=${apiKey}`;
-    const response = await fetch(url);
-    const data = await response.json();
+      // Add a delay before making the API call to avoid rate limiting
+      // Etherscan free API keys are limited to 5 calls per second
+      await delay(1000); // 1000ms delay to be more conservative with rate limiting
 
-    if (data.status !== '1' || !data.result) {
+      try {
+        // Fetch the ABI from Etherscan
+        const url = `${apiUrl}/api?module=contract&action=getabi&address=${normalizedAddress}&apikey=${apiKey}`;
+        const response = await fetch(url);
+        data = await response.json();
+
+        if (data.status === '1' && data.result) {
+          break; // Success, exit the retry loop
+        }
+
+        console.warn(
+          `Failed to fetch ABI for ${normalizedAddress} (attempt ${retryCount + 1}/${maxRetries}): ${data.message || 'Unknown error'}, Status: ${data.status}, Result: ${data.result}`,
+        );
+        retryCount++;
+
+        if (retryCount < maxRetries) {
+          // Exponential backoff for retries
+          await delay(1000 * 2 ** retryCount);
+        }
+      } catch (error) {
+        console.error(
+          `Error fetching ABI for ${normalizedAddress} (attempt ${retryCount + 1}/${maxRetries}):`,
+          error,
+        );
+        retryCount++;
+
+        if (retryCount < maxRetries) {
+          // Exponential backoff for retries
+          await delay(1000 * 2 ** retryCount);
+        }
+      }
+    }
+
+    if (!data || data.status !== '1' || !data.result) {
       console.warn(
-        `Failed to fetch ABI for ${normalizedAddress}: ${data.message || 'Unknown error'}`,
+        `Failed to fetch ABI for ${normalizedAddress} after ${maxRetries} attempts: ${data?.message || 'Unknown error'}, Status: ${data?.status}, Result: ${data?.result}`,
       );
       return null;
     }
