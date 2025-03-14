@@ -44,7 +44,7 @@ export async function fetchContractAbi(address: string, chainId = 1): Promise<Ab
 
     // Add a small delay before making the API call to avoid rate limiting
     // Etherscan free API keys are limited to 5 calls per second
-    await delay(250); // 250ms delay to stay under the 5 calls per second limit
+    await delay(300); // 300ms delay to stay under the 5 calls per second limit
 
     // Fetch the ABI from Etherscan
     const url = `${apiUrl}/api?module=contract&action=getabi&address=${normalizedAddress}&apikey=${apiKey}`;
