@@ -57,10 +57,15 @@ export function useWriteProposeNew() {
       return { hash, receipt };
     },
     onSuccess: (data) => {
+      const etherscanUrl = `https://etherscan.io/tx/${data.hash}`;
       toast.success('Proposal created successfully!', {
         id: TOAST_ID,
-        description: `Confirmed in block ${data.receipt.blockNumber}`,
-        duration: 5000, // Show success for 5 seconds
+        description: `Transaction confirmed in block ${data.receipt.blockNumber}.`,
+        duration: 8000, // Show success for 8 seconds to give time to click the link
+        action: {
+          label: 'View on Etherscan',
+          onClick: () => window.open(etherscanUrl, '_blank'),
+        },
       });
     },
     onError: (error) => {
