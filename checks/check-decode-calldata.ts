@@ -192,7 +192,17 @@ async function prettifyCalldata(call: FluffyCall, target: string) {
         description += formattedArgs;
       }
 
-      description += `)\` on \`${target}\` (decoded from ABI)`;
+      // Add a human-readable description based on the function name
+      let humanDescription = '';
+      if (decoded.name === 'acceptOwnership') {
+        humanDescription = ' to accept ownership transfer';
+      } else if (decoded.name === 'resume') {
+        humanDescription = ' to resume operations';
+      } else if (decoded.name === 'deposit') {
+        humanDescription = ' to deposit assets';
+      }
+
+      description += `)\` on \`${target}\`${humanDescription} (decoded from ABI)`;
       return description;
     }
 
