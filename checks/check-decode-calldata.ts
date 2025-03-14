@@ -5,6 +5,7 @@ import { bullet } from '../presentation/report';
 import type { FluffyCall, ProposalCheck } from '../types';
 import { fetchTokenMetadata } from '../utils/contracts/erc20';
 import { decodeFunctionWithAbi } from '../utils/clients/etherscan';
+import { getContractName } from '../utils/clients/tenderly';
 
 /**
  * Decodes proposal target calldata into a human-readable format
@@ -46,7 +47,13 @@ export const checkDecodeCalldata: ProposalCheck = {
           call = returnCallOrMatchingSubcall(calldata, call);
         }
 
-        return prettifyCalldata(call, proposal.targets[i], warnings);
+        // Get the contract information from the simulation
+        const targetAddress = proposal.targets[i];
+        const contract = sim.contracts.find(
+          (c) => getAddress(c.address) === getAddress(targetAddress),
+        );
+
+        return prettifyCalldata(call, targetAddress, warnings, contract);
       }),
     );
 
@@ -116,8 +123,8 @@ function getSignature(call: FluffyCall) {
 /**
  * Given a target, signature, and call, generate a human-readable description
  */
-function getDescription(target: string, sig: string, call: FluffyCall) {
-  let description = `On contract \`${target}\`, call `;
+function getDescription(contractIdentifier: string, sig: string, call: FluffyCall) {
+  let description = `On contract ${contractIdentifier}, call `;
 
   // If the call is not decoded, provide a generic description
   if (!call.decoded_input) {
@@ -172,7 +179,12 @@ function formatArgs(args: unknown[]): string {
 /**
  * Given a call, return a human-readable description of the call
  */
-async function prettifyCalldata(call: FluffyCall, target: string, warnings: string[]) {
+async function prettifyCalldata(
+  call: FluffyCall,
+  target: string,
+  warnings: string[],
+  contract: any,
+) {
   // Handle ETH transfers (empty calldata with value)
   if (call.input === '0x' && call.value && BigInt(call.value) > 0n) {
     const ethAmount = formatUnits(call.value, 18);
@@ -181,6 +193,9 @@ async function prettifyCalldata(call: FluffyCall, target: string, warnings: stri
 
   // Get the function selector (first 4 bytes of the calldata)
   const selector = call.input.slice(0, 10);
+
+  // Format the contract identifier using the contract information from the simulation
+  const contractIdentifier = contract ? getContractName(contract) : `\`${target}\``;
 
   // Try to decode using Etherscan ABI first
   try {
@@ -202,7 +217,7 @@ async function prettifyCalldata(call: FluffyCall, target: string, warnings: stri
         description += formattedArgs;
       }
 
-      description += `)\` on \`${target}\` (decoded from ABI)`;
+      description += `)\` on ${contractIdentifier} (decoded from ABI)`;
       return description;
     }
 
@@ -222,54 +237,57 @@ async function prettifyCalldata(call: FluffyCall, target: string, warnings: stri
   if (isTokenAction) {
     console.log(`[DEBUG] Using token handler for selector ${selector}`);
     const { symbol, decimals } = await fetchTokenMetadata(call.to);
-    return TOKEN_HANDLERS[selector](call, decimals || 0, symbol);
+    return TOKEN_HANDLERS[selector](call, decimals || 0, symbol, contractIdentifier);
   }
 
   // Generic handling for non-token actions
   console.log(`[DEBUG] Using generic handling for ${target} with selector ${selector}`);
   const sig = getSignature(call);
-  return getDescription(target, sig, call);
+  return getDescription(contractIdentifier, sig, call);
 }
 
 // Handlers for token-related function calls
 const TOKEN_HANDLERS: Record<
   string,
-  (call: FluffyCall, decimals: number, symbol: string | null) => string
+  (call: FluffyCall, decimals: number, symbol: string | null, contractIdentifier: string) => string
 > = {
   [toFunctionSelector('approve(address,uint256)')]: (
     call: FluffyCall,
     decimals: number,
     symbol: string | null,
+    contractIdentifier: string,
   ) => {
     const { args } = decodeFunctionData({
       abi: [parseAbiItem('function approve(address spender, uint256 value)')],
       data: call.input as `0x${string}`,
     });
     const [spender, value] = args;
-    return `\`${call.from}\` approves \`${getAddress(spender)}\` to spend ${formatUnits(value, decimals)} ${symbol} (formatted)`;
+    return `\`${call.from}\` approves \`${getAddress(spender)}\` to spend ${formatUnits(value, decimals)} ${symbol} on ${contractIdentifier} (formatted)`;
   },
   [toFunctionSelector('transfer(address,uint256)')]: (
     call: FluffyCall,
     decimals: number,
     symbol: string | null,
+    contractIdentifier: string,
   ) => {
     const { args } = decodeFunctionData({
       abi: [parseAbiItem('function transfer(address to, uint256 value)')],
       data: call.input as `0x${string}`,
     });
     const [to, value] = args;
-    return `\`${call.from}\` transfers ${formatUnits(value, decimals)} ${symbol} to \`${getAddress(to)}\` (formatted)`;
+    return `\`${call.from}\` transfers ${formatUnits(value, decimals)} ${symbol} to \`${getAddress(to)}\` on ${contractIdentifier} (formatted)`;
   },
   [toFunctionSelector('transferFrom(address,address,uint256)')]: (
     call: FluffyCall,
     decimals: number,
     symbol: string | null,
+    contractIdentifier: string,
   ) => {
     const { args } = decodeFunctionData({
       abi: [parseAbiItem('function transferFrom(address from, address to, uint256 value)')],
       data: call.input as `0x${string}`,
     });
     const [from, to, value] = args;
-    return `\`${call.from}\` transfers ${formatUnits(value, decimals)} ${symbol} from \`${getAddress(from)}\` to \`${getAddress(to)}\` (formatted)`;
+    return `\`${call.from}\` transfers ${formatUnits(value, decimals)} ${symbol} from \`${getAddress(from)}\` to \`${getAddress(to)}\` on ${contractIdentifier} (formatted)`;
   },
 };
