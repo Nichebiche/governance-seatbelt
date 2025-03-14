@@ -16,6 +16,7 @@ import type {
 } from './types';
 import { provider } from './utils/clients/ethers';
 import { simulate } from './utils/clients/tenderly';
+import { cacheProposal, getCachedProposal, needsSimulation } from './utils/cache/proposalCache';
 import { DAO_NAME, GOVERNOR_ADDRESS, SIM_NAME } from './utils/constants';
 import {
   formatProposalId,
@@ -67,50 +68,91 @@ async function main() {
     // If we aren't simulating all proposals, filter down to just the active ones. For now we
     // assume we're simulating all by default
     const states = await Promise.all(proposalIds.map((id) => governor.state(id)));
-    const simProposals: { id: BigNumber; simType: SimulationConfigBase['type'] }[] =
+    const simProposals: { id: BigNumber; simType: SimulationConfigBase['type']; state: string }[] =
       proposalIds.map((id, i) => {
         // If state is `Executed` (state 7), we use the executed sim type and effectively just
         // simulate the real transaction. For all other states, we use the `proposed` type because
         // state overrides are required to simulate the transaction
-        const state = String(states[i]) as keyof typeof PROPOSAL_STATES;
-        const isExecuted = PROPOSAL_STATES[state] === 'Executed';
-        return { id, simType: isExecuted ? 'executed' : 'proposed' };
+        const stateNum = String(states[i]) as keyof typeof PROPOSAL_STATES;
+        const stateStr = PROPOSAL_STATES[stateNum] || 'Unknown';
+        const isExecuted = stateStr === 'Executed';
+        return {
+          id,
+          simType: isExecuted ? 'executed' : 'proposed',
+          state: stateStr,
+        };
       });
-    const simProposalsIds = simProposals.map((sim) => sim.id);
 
-    // Simulate them
-    // We intentionally do not run these in parallel to avoid hitting Tenderly API rate limits or flooding
-    // them with requests if we e.g. simulate all proposals for a governor (instead of just active ones)
-    const numProposals = simProposals.length;
-    console.log(
-      `Simulating ${numProposals} ${DAO_NAME} proposals: IDs of ${simProposalsIds
-        .map((id) => formatProposalId(governorType, id))
-        .join(', ')}`,
+    // Filter proposals that need simulation based on cache status
+    const proposalsToSimulate = simProposals.filter((simProposal) =>
+      needsSimulation(DAO_NAME, GOVERNOR_ADDRESS, simProposal.id.toString(), simProposal.state),
     );
 
-    // Generate the proposal data and dependencies needed by checks
-    const proposalData = {
-      governor,
-      provider,
-      timelock: await getTimelock(governorType, governor.address),
-    };
+    const cachedProposals = simProposals.filter(
+      (simProposal) =>
+        !needsSimulation(DAO_NAME, GOVERNOR_ADDRESS, simProposal.id.toString(), simProposal.state),
+    );
 
-    for (const simProposal of simProposals) {
-      if (simProposal.simType === 'new')
-        throw new Error('Simulation type "new" is not supported in this branch');
-      // Determine if this proposal is already `executed` or currently in-progress (`proposed`)
-      console.log(`  Simulating ${DAO_NAME} proposal ${simProposal.id}...`);
-      const config: SimulationConfig = {
-        type: simProposal.simType,
-        daoName: DAO_NAME,
-        governorAddress: getAddress(GOVERNOR_ADDRESS),
-        governorType,
-        proposalId: simProposal.id,
+    // Load cached proposals
+    for (const cachedProposal of cachedProposals) {
+      console.log(`Using cached simulation for ${DAO_NAME} proposal ${cachedProposal.id}...`);
+      const cachedData = getCachedProposal(
+        DAO_NAME,
+        GOVERNOR_ADDRESS,
+        cachedProposal.id.toString(),
+      );
+
+      if (cachedData) {
+        simOutputs.push(cachedData.simulationData);
+      }
+    }
+
+    // Simulate proposals that need simulation
+    const numProposalsToSimulate = proposalsToSimulate.length;
+    if (numProposalsToSimulate > 0) {
+      console.log(
+        `Simulating ${numProposalsToSimulate} ${DAO_NAME} proposals: IDs of ${proposalsToSimulate
+          .map((sim) => formatProposalId(governorType, sim.id))
+          .join(', ')}`,
+      );
+
+      // Generate the proposal data and dependencies needed by checks
+      const proposalData = {
+        governor,
+        provider,
+        timelock: await getTimelock(governorType, governor.address),
       };
 
-      const { sim, proposal, latestBlock } = await simulate(config);
-      simOutputs.push({ sim, proposal, latestBlock, config, deps: proposalData });
-      console.log('    done');
+      for (const simProposal of proposalsToSimulate) {
+        if (simProposal.simType === 'new')
+          throw new Error('Simulation type "new" is not supported in this branch');
+        // Determine if this proposal is already `executed` or currently in-progress (`proposed`)
+        console.log(`  Simulating ${DAO_NAME} proposal ${simProposal.id}...`);
+        const config: SimulationConfig = {
+          type: simProposal.simType,
+          daoName: DAO_NAME,
+          governorAddress: getAddress(GOVERNOR_ADDRESS),
+          governorType,
+          proposalId: simProposal.id,
+        };
+
+        const { sim, proposal, latestBlock } = await simulate(config);
+        const simulationData = { sim, proposal, latestBlock, config, deps: proposalData };
+        simOutputs.push(simulationData);
+
+        // Cache the simulation results
+        cacheProposal(
+          DAO_NAME,
+          GOVERNOR_ADDRESS,
+          simProposal.id.toString(),
+          simProposal.state,
+          simulationData,
+        );
+
+        console.log('    done');
+      }
+    } else {
+      console.log(`No new proposals to simulate for ${DAO_NAME}`);
     }
   }
 

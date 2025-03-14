@@ -7,7 +7,7 @@ reports/
 
 # hardhat
 artifacts/
-cache/
+cache/proposals/
 
 # slither
 crytic-export/
