@@ -7,6 +7,13 @@ const abiCache: Record<string, Abi> = {};
 // Simple delay function to help with rate limiting
 const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
+// Define a type for the Etherscan API response
+interface EtherscanApiResponse {
+  status: string;
+  message: string;
+  result: string | null;
+}
+
 /**
  * Fetches the ABI for a contract from Etherscan
  * @param address The contract address
@@ -43,7 +50,7 @@ export async function fetchContractAbi(address: string, chainId = 1): Promise<Ab
     // Retry mechanism for API requests
     const maxRetries = 3;
     let retryCount = 0;
-    let data: any;
+    let data: EtherscanApiResponse | undefined;
 
     while (retryCount < maxRetries) {
       console.log(
@@ -58,7 +65,7 @@ export async function fetchContractAbi(address: string, chainId = 1): Promise<Ab
         // Fetch the ABI from Etherscan
         const url = `${apiUrl}/api?module=contract&action=getabi&address=${normalizedAddress}&apikey=${apiKey}`;
         const response = await fetch(url);
-        data = await response.json();
+        data = (await response.json()) as EtherscanApiResponse;
 
         if (data.status === '1' && data.result) {
           break; // Success, exit the retry loop

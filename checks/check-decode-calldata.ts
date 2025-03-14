@@ -2,10 +2,10 @@ import { getAddress } from '@ethersproject/address';
 import { formatUnits } from '@ethersproject/units';
 import { decodeFunctionData, parseAbiItem, toFunctionSelector } from 'viem';
 import { bullet } from '../presentation/report';
-import type { FluffyCall, ProposalCheck } from '../types';
-import { fetchTokenMetadata } from '../utils/contracts/erc20';
+import type { FluffyCall, ProposalCheck, TenderlyContract } from '../types';
 import { decodeFunctionWithAbi } from '../utils/clients/etherscan';
 import { getContractName } from '../utils/clients/tenderly';
+import { fetchTokenMetadata } from '../utils/contracts/erc20';
 
 /**
  * Decodes proposal target calldata into a human-readable format
@@ -183,7 +183,7 @@ async function prettifyCalldata(
   call: FluffyCall,
   target: string,
   warnings: string[],
-  contract: any,
+  contract: TenderlyContract | undefined,
 ) {
   // Handle ETH transfers (empty calldata with value)
   if (call.input === '0x' && call.value && BigInt(call.value) > 0n) {
