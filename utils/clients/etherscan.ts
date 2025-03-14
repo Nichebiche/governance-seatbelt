@@ -4,6 +4,9 @@ import type { Abi } from 'viem';
 // Cache for ABIs to avoid redundant API calls
 const abiCache: Record<string, Abi> = {};
 
+// Simple delay function to help with rate limiting
+const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
 /**
  * Fetches the ABI for a contract from Etherscan
  * @param address The contract address
@@ -38,6 +41,11 @@ export async function fetchContractAbi(address: string, chainId = 1): Promise<Ab
     }
 
     console.log(`[DEBUG] Making API request to Etherscan for ${normalizedAddress}`);
+
+    // Add a small delay before making the API call to avoid rate limiting
+    // Etherscan free API keys are limited to 5 calls per second
+    await delay(250); // 250ms delay to stay under the 5 calls per second limit
+
     // Fetch the ABI from Etherscan
     const url = `${apiUrl}/api?module=contract&action=getabi&address=${normalizedAddress}&apikey=${apiKey}`;
     const response = await fetch(url);
