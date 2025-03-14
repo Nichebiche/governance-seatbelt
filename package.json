@@ -14,7 +14,9 @@
     "check": "bun run typecheck && biome check",
     "check:fix": "bun run typecheck && biome check --write",
     "test": "bun test",
-    "check-proposal": "bun run-checks.ts"
+    "check-proposal": "bun run-checks.ts",
+    "sim": "bun start",
+    "propose": "bun run sim && cd frontend && bun dev"
   },
   "repository": {
     "type": "git",
