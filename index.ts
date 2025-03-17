@@ -14,9 +14,9 @@ import type {
   SimulationConfigBase,
   SimulationData,
 } from './types';
+import { cacheProposal, getCachedProposal, needsSimulation } from './utils/cache/proposalCache';
 import { provider } from './utils/clients/ethers';
 import { simulate } from './utils/clients/tenderly';
-import { cacheProposal, getCachedProposal, needsSimulation } from './utils/cache/proposalCache';
 import { DAO_NAME, GOVERNOR_ADDRESS, SIM_NAME } from './utils/constants';
 import {
   formatProposalId,
@@ -85,12 +85,17 @@ async function main() {
 
     // Filter proposals that need simulation based on cache status
     const proposalsToSimulate = simProposals.filter((simProposal) =>
-      needsSimulation(DAO_NAME, GOVERNOR_ADDRESS, simProposal.id.toString(), simProposal.state),
+      needsSimulation(DAO_NAME!, GOVERNOR_ADDRESS!, simProposal.id.toString(), simProposal.state),
     );
 
     const cachedProposals = simProposals.filter(
       (simProposal) =>
-        !needsSimulation(DAO_NAME, GOVERNOR_ADDRESS, simProposal.id.toString(), simProposal.state),
+        !needsSimulation(
+          DAO_NAME!,
+          GOVERNOR_ADDRESS!,
+          simProposal.id.toString(),
+          simProposal.state,
+        ),
     );
 
     // Load cached proposals

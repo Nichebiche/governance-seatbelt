@@ -1,183 +1,141 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
-import type { SimulationData, SimulationResult } from '../../types';
+import { BigNumber } from 'ethers';
 import { PROPOSAL_STATES } from '../contracts/governor-bravo';
+import type { NeedsSimulationParams, ProposalCacheEntry } from './types';
 
-// Define the cache directory
-const CACHE_DIR = join(process.cwd(), 'cache', 'proposals');
+// Cache directory path - use GITHUB_WORKSPACE in CI, process.cwd() locally
+const CACHE_DIR = process.env.GITHUB_WORKSPACE || process.cwd();
+const PROPOSAL_CACHE_DIR = join(CACHE_DIR, 'cache', 'proposals');
 
-// Define the cache entry type
-interface ProposalCacheEntry {
-  timestamp: number;
-  proposalState: string | null;
-  simulationData: SimulationData;
+// Ensure cache directory exists
+if (!existsSync(PROPOSAL_CACHE_DIR)) {
+  mkdirSync(PROPOSAL_CACHE_DIR, { recursive: true });
 }
 
 /**
- * Ensures the cache directory exists
- */
-function ensureCacheDirectory(): void {
-  if (!existsSync(CACHE_DIR)) {
-    mkdirSync(CACHE_DIR, { recursive: true });
-    console.log(`Created cache directory: ${CACHE_DIR}`);
-  }
-}
-
-/**
- * Generates a cache key for a proposal
- * @param daoName The name of the DAO
- * @param governorAddress The address of the governor contract
- * @param proposalId The ID of the proposal
- * @returns The cache key
+ * Gets the cache key for a proposal
  */
 function getCacheKey(daoName: string, governorAddress: string, proposalId: string): string {
-  return `${daoName}-${governorAddress.toLowerCase()}-${proposalId}`;
+  return `${daoName}-${governorAddress}-${proposalId}`;
 }
 
 /**
- * Gets the path to the cache file for a proposal
- * @param daoName The name of the DAO
- * @param governorAddress The address of the governor contract
- * @param proposalId The ID of the proposal
- * @returns The path to the cache file
+ * Gets the cache file path for a proposal
  */
 function getCacheFilePath(daoName: string, governorAddress: string, proposalId: string): string {
   const cacheKey = getCacheKey(daoName, governorAddress, proposalId);
-  return join(CACHE_DIR, `${cacheKey}.json`);
+  return join(PROPOSAL_CACHE_DIR, `${cacheKey}.json`);
 }
 
 /**
- * Checks if a proposal simulation is cached
- * @param daoName The name of the DAO
- * @param governorAddress The address of the governor contract
- * @param proposalId The ID of the proposal
- * @returns True if the proposal is cached, false otherwise
+ * Checks if a proposal is cached
  */
 export function isProposalCached(
   daoName: string,
   governorAddress: string,
   proposalId: string,
 ): boolean {
-  const cacheFilePath = getCacheFilePath(daoName, governorAddress, proposalId);
-  return existsSync(cacheFilePath);
+  const cachePath = getCacheFilePath(daoName, governorAddress, proposalId);
+  return existsSync(cachePath);
 }
 
 /**
- * Gets a cached proposal simulation
- * @param daoName The name of the DAO
- * @param governorAddress The address of the governor contract
- * @param proposalId The ID of the proposal
- * @returns The cached simulation data or null if not found
+ * Gets cached simulation data for a proposal
  */
 export function getCachedProposal(
   daoName: string,
   governorAddress: string,
   proposalId: string,
 ): ProposalCacheEntry | null {
+  const cachePath = getCacheFilePath(daoName, governorAddress, proposalId);
   try {
-    const cacheFilePath = getCacheFilePath(daoName, governorAddress, proposalId);
-    if (!existsSync(cacheFilePath)) {
-      return null;
+    if (existsSync(cachePath)) {
+      const data = readFileSync(cachePath, 'utf8');
+      return JSON.parse(data);
     }
-
-    const cacheData = readFileSync(cacheFilePath, 'utf-8');
-    return JSON.parse(cacheData) as ProposalCacheEntry;
   } catch (error) {
-    console.error(`Error reading cache for proposal ${proposalId}:`, error);
-    return null;
+    console.warn(`Error reading cache for proposal ${proposalId}:`, error);
   }
+  return null;
 }
 
 /**
- * Caches a proposal simulation
- * @param daoName The name of the DAO
- * @param governorAddress The address of the governor contract
- * @param proposalId The ID of the proposal
- * @param proposalState The current state of the proposal
- * @param simulationData The simulation data to cache
+ * Caches simulation data for a proposal
  */
 export function cacheProposal(
   daoName: string,
   governorAddress: string,
   proposalId: string,
   proposalState: string | null,
-  simulationData: SimulationData,
+  simulationData: any,
 ): void {
+  const cachePath = getCacheFilePath(daoName, governorAddress, proposalId);
   try {
-    ensureCacheDirectory();
+    // Ensure the cache directory exists
+    if (!existsSync(PROPOSAL_CACHE_DIR)) {
+      mkdirSync(PROPOSAL_CACHE_DIR, { recursive: true });
+    }
 
-    const cacheFilePath = getCacheFilePath(daoName, governorAddress, proposalId);
+    // Create cache entry
     const cacheEntry: ProposalCacheEntry = {
       timestamp: Date.now(),
       proposalState: proposalState || 'Unknown',
-      simulationData,
+      simulationData: simulationData,
     };
 
-    // Convert BigNumber objects to strings for JSON serialization
-    const serializedEntry = JSON.stringify(cacheEntry, (_, value) => {
-      if (typeof value === 'object' && value !== null && typeof value.toHexString === 'function') {
-        return value.toString();
-      }
-      return value;
-    });
-
-    writeFileSync(cacheFilePath, serializedEntry);
-    console.log(`Cached simulation for proposal ${proposalId}`);
+    // Write to cache file
+    writeFileSync(
+      cachePath,
+      JSON.stringify(
+        cacheEntry,
+        (_, value) => {
+          if (value instanceof BigNumber) {
+            return value.toString();
+          }
+          return value;
+        },
+        2,
+      ),
+    );
   } catch (error) {
-    console.error(`Error caching proposal ${proposalId}:`, error);
+    console.warn(`Error caching proposal ${proposalId}:`, error);
   }
 }
 
 /**
- * Determines if a proposal needs to be simulated based on its current state and cache status
- * @param daoName The name of the DAO
- * @param governorAddress The address of the governor contract
- * @param proposalId The ID of the proposal
- * @param currentState The current state of the proposal
- * @returns True if the proposal needs simulation, false otherwise
+ * Checks if a proposal needs to be simulated based on its cache status
  */
 export function needsSimulation(
   daoName: string,
   governorAddress: string,
   proposalId: string,
-  currentState: string | null,
+  currentState: string,
 ): boolean {
-  // If state is null, we need to simulate
-  if (currentState === null) {
+  // If we don't have a current state, we should simulate
+  if (!currentState) {
     return true;
   }
 
-  // Always simulate if not cached
-  if (!isProposalCached(daoName, governorAddress, proposalId)) {
-    return true;
-  }
-
-  // Get the cached entry
   const cachedEntry = getCachedProposal(daoName, governorAddress, proposalId);
   if (!cachedEntry) {
     return true;
   }
 
-  // If the proposal state has changed, we need to simulate again
-  if (cachedEntry.proposalState !== currentState) {
-    return true;
-  }
+  // List of terminal states where we don't need to re-simulate
+  const terminalStates = ['Executed', 'Defeated', 'Expired', 'Canceled'];
 
-  // If the proposal is in a terminal state (Executed, Defeated, Expired, Canceled),
-  // we don't need to simulate again
-  const terminalStates = [
-    PROPOSAL_STATES['7'], // Executed
-    PROPOSAL_STATES['3'], // Defeated
-    PROPOSAL_STATES['6'], // Expired
-    PROPOSAL_STATES['2'], // Canceled
-  ];
-
+  // If the proposal is in a terminal state and we have cached data, we don't need to re-simulate
   if (terminalStates.includes(currentState)) {
     return false;
   }
 
-  // For active proposals, we might want to re-simulate periodically
-  // For now, we'll re-simulate if the cache is older than 1 hour
-  const ONE_HOUR = 60 * 60 * 1000;
-  return Date.now() - cachedEntry.timestamp > ONE_HOUR;
+  // For active proposals, re-simulate if:
+  // 1. The state has changed
+  // 2. The cache is older than 1 hour
+  const oneHour = 60 * 60 * 1000; // 1 hour in milliseconds
+  const isStale = Date.now() - cachedEntry.timestamp > oneHour;
+  const stateChanged = cachedEntry.proposalState !== currentState;
+
+  return isStale || stateChanged;
 }

@@ -29,6 +29,14 @@ jobs:
         with:
           bun-version: latest
 
+      - name: Cache proposal simulation results
+        uses: actions/cache@v4
+        with:
+          path: cache/proposals
+          key: ${{ runner.os }}-proposals-${{ hashFiles('**/package-lock.json', '**/yarn.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-proposals-
+
       - name: Install dependencies
         run: bun install
 
