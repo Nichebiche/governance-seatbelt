@@ -504,6 +504,8 @@ async function simulateProposed(config: SimulationConfigProposed): Promise<Simul
     ...(proposalCreatedEvent.args as unknown as ProposalEvent),
     values, // This does not get included otherwise, same reason why we use `proposalCreatedEvent.args![3]` above.
     id: BigNumber.from(proposalId), // Make sure we always have an ID field
+    startBlock: BigNumber.from(proposalCreatedEvent.args?.startBlock),
+    endBlock: BigNumber.from(proposalCreatedEvent.args?.endBlock),
   };
 
   // Handle ETH transfers if needed
