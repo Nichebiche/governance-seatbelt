@@ -1,6 +1,7 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { BigNumber } from 'ethers';
+import type { SimulationData } from '../../types';
 import { PROPOSAL_STATES } from '../contracts/governor-bravo';
 import type { NeedsSimulationParams, ProposalCacheEntry } from './types';
 
@@ -68,7 +69,7 @@ export function cacheProposal(
   governorAddress: string,
   proposalId: string,
   proposalState: string | null,
-  simulationData: any,
+  simulationData: SimulationData,
 ): void {
   const cachePath = getCacheFilePath(daoName, governorAddress, proposalId);
   try {
