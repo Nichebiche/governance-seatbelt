@@ -52,7 +52,20 @@ export function getCachedProposal(
   try {
     if (existsSync(cachePath)) {
       const data = readFileSync(cachePath, 'utf8');
-      return JSON.parse(data);
+      const parsed = JSON.parse(data);
+
+      // Convert string values back to BigNumber objects
+      if (parsed.simulationData?.proposal) {
+        const proposal = parsed.simulationData.proposal;
+        if (proposal.startBlock) proposal.startBlock = BigNumber.from(proposal.startBlock);
+        if (proposal.endBlock) proposal.endBlock = BigNumber.from(proposal.endBlock);
+        if (proposal.id) proposal.id = BigNumber.from(proposal.id);
+        if (proposal.proposalId) proposal.proposalId = BigNumber.from(proposal.proposalId);
+        if (proposal.values)
+          proposal.values = proposal.values.map((v: string) => BigNumber.from(v));
+      }
+
+      return parsed;
     }
   } catch (error) {
     console.warn(`Error reading cache for proposal ${proposalId}:`, error);
