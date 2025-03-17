@@ -6,7 +6,7 @@ import { getAddress } from '@ethersproject/address';
 import { BigNumber } from '@ethersproject/bignumber';
 import ALL_CHECKS from './checks';
 import { generateAndSaveReports } from './presentation/report';
-import type { AllCheckResults, GovernorType, SimulationConfig } from './types';
+import type { AllCheckResults, SimulationConfig } from './types';
 import { provider } from './utils/clients/ethers';
 import { simulate } from './utils/clients/tenderly';
 import { DAO_NAME, GOVERNOR_ADDRESS } from './utils/constants';

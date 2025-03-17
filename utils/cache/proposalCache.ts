@@ -2,8 +2,7 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { BigNumber } from 'ethers';
 import type { SimulationData } from '../../types';
-import { PROPOSAL_STATES } from '../contracts/governor-bravo';
-import type { NeedsSimulationParams, ProposalCacheEntry } from './types';
+import type { ProposalCacheEntry } from './types';
 
 // Cache directory path - use GITHUB_WORKSPACE in CI, process.cwd() locally
 const CACHE_DIR = process.env.GITHUB_WORKSPACE || process.cwd();

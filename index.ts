@@ -6,7 +6,7 @@ import { getAddress } from '@ethersproject/address';
 import type { Contract } from 'ethers';
 import type { BigNumber } from 'ethers';
 import ALL_CHECKS from './checks';
-import { generateAndSaveReports, writeFrontendData } from './presentation/report';
+import { generateAndSaveReports } from './presentation/report';
 import type {
   AllCheckResults,
   GovernorType,

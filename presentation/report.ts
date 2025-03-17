@@ -22,7 +22,6 @@ import type {
   ProposalEvent,
   SimulationCalldata,
   SimulationCheck,
-  SimulationData,
   SimulationEvent,
   SimulationStateChange,
   StructuredSimulationReport,
