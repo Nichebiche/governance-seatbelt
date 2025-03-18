@@ -48,14 +48,14 @@ export async function fetchContractAbi(address: string, chainId = 1): Promise<Ab
     // Check in-memory cache first
     const cacheKey = `${chainId}:${normalizedAddress}`;
     if (abiCache[cacheKey]) {
-      console.log(`[DEBUG] Using in-memory cached ABI for ${normalizedAddress}`);
+      console.log(`[ABI] Using in-memory cached ABI for ${normalizedAddress}`);
       return abiCache[cacheKey];
     }
 
     // Check file cache
     const cachePath = getAbiCacheFilePath(address, chainId);
     if (existsSync(cachePath)) {
-      console.log(`[DEBUG] Using file cached ABI for ${normalizedAddress}`);
+      console.log(`[ABI] Using file cached ABI for ${normalizedAddress}`);
       const cachedAbi = JSON.parse(readFileSync(cachePath, 'utf8'));
       abiCache[cacheKey] = cachedAbi;
       return cachedAbi;
@@ -64,14 +64,14 @@ export async function fetchContractAbi(address: string, chainId = 1): Promise<Ab
     // Determine the API URL based on the chain ID
     const apiUrl = getEtherscanApiUrl(chainId);
     if (!apiUrl) {
-      console.warn(`Unsupported chain ID: ${chainId}`);
+      console.warn(`[ABI] Unsupported chain ID: ${chainId}`);
       return null;
     }
 
     // Get the API key from environment variables
     const apiKey = process.env.ETHERSCAN_API_KEY;
     if (!apiKey) {
-      console.warn('ETHERSCAN_API_KEY not found in environment variables');
+      console.warn('[ABI] ETHERSCAN_API_KEY not found in environment variables');
       return null;
     }
 
@@ -82,7 +82,7 @@ export async function fetchContractAbi(address: string, chainId = 1): Promise<Ab
 
     while (retryCount < maxRetries) {
       console.log(
-        `[DEBUG] Making API request to Etherscan for ${normalizedAddress} (attempt ${retryCount + 1}/${maxRetries})`,
+        `[ABI] Fetching new ABI from Etherscan for ${normalizedAddress} (attempt ${retryCount + 1}/${maxRetries})`,
       );
 
       // Add a delay before making the API call to avoid rate limiting
@@ -100,7 +100,7 @@ export async function fetchContractAbi(address: string, chainId = 1): Promise<Ab
         }
 
         console.warn(
-          `Failed to fetch ABI for ${normalizedAddress} (attempt ${retryCount + 1}/${maxRetries}): ${data.message || 'Unknown error'}, Status: ${data.status}, Result: ${data.result}`,
+          `[ABI] Failed to fetch ABI for ${normalizedAddress} (attempt ${retryCount + 1}/${maxRetries}): ${data.message || 'Unknown error'}, Status: ${data.status}, Result: ${data.result}`,
         );
         retryCount++;
 
@@ -110,7 +110,7 @@ export async function fetchContractAbi(address: string, chainId = 1): Promise<Ab
         }
       } catch (error) {
         console.error(
-          `Error fetching ABI for ${normalizedAddress} (attempt ${retryCount + 1}/${maxRetries}):`,
+          `[ABI] Error fetching ABI for ${normalizedAddress} (attempt ${retryCount + 1}/${maxRetries}):`,
           error,
         );
         retryCount++;
@@ -124,21 +124,33 @@ export async function fetchContractAbi(address: string, chainId = 1): Promise<Ab
 
     if (!data || data.status !== '1' || !data.result) {
       console.warn(
-        `Failed to fetch ABI for ${normalizedAddress} after ${maxRetries} attempts: ${data?.message || 'Unknown error'}, Status: ${data?.status}, Result: ${data?.result}`,
+        `[ABI] Failed to fetch ABI for ${normalizedAddress} after ${maxRetries} attempts: ${data?.message || 'Unknown error'}, Status: ${data?.status}, Result: ${data?.result}`,
       );
       return null;
     }
 
     // Parse the ABI
     try {
-      console.log(`[DEBUG] Successfully fetched ABI for ${normalizedAddress}`);
+      console.log(`[ABI] Successfully fetched and cached new ABI for ${normalizedAddress}`);
 
       // Parse the ABI string into a JSON object
-      const abiJson = JSON.parse(data.result);
+      let abiJson: unknown;
+      try {
+        // First try parsing as direct JSON
+        abiJson = JSON.parse(data.result);
+      } catch {
+        // If that fails, try parsing as a string-encoded JSON
+        try {
+          abiJson = JSON.parse(data.result.replace(/^"|"$/g, ''));
+        } catch (e2) {
+          console.error(`[ABI] Error parsing ABI for ${normalizedAddress}:`, e2);
+          return null;
+        }
+      }
 
       // Validate that it's an array
       if (!Array.isArray(abiJson)) {
-        console.warn(`Invalid ABI format for ${normalizedAddress}: not an array`);
+        console.warn(`[ABI] Invalid ABI format for ${normalizedAddress}: not an array`);
         return null;
       }
 
@@ -148,7 +160,7 @@ export async function fetchContractAbi(address: string, chainId = 1): Promise<Ab
 
       return abiJson as Abi;
     } catch (error) {
-      console.error(`Error parsing ABI for ${normalizedAddress}:`, error);
+      console.error(`[ABI] Error parsing ABI for ${normalizedAddress}:`, error);
       return null;
     }
   } catch (error) {
@@ -184,12 +196,12 @@ export async function decodeFunctionWithAbi(
   chainId = 1,
 ): Promise<{ name: string; args: unknown[] } | null> {
   console.log(
-    `[DEBUG] Attempting to decode function data for ${address} with selector ${data.slice(0, 10)}`,
+    `[ABI] Attempting to decode function data for ${address} with selector ${data.slice(0, 10)}`,
   );
   try {
     const abi = await fetchContractAbi(address, chainId);
     if (!abi) {
-      console.log(`[DEBUG] No ABI found for ${address}`);
+      console.log(`[ABI] No ABI found for ${address}`);
       return null;
     }
 
@@ -200,26 +212,49 @@ export async function decodeFunctionWithAbi(
     const { decodeFunctionData } = await import('viem');
 
     try {
-      console.log(`[DEBUG] Attempting to decode with ABI for ${address}`);
+      console.log(`[ABI] Attempting to decode with Etherscan ABI for ${address}`);
       const decoded = decodeFunctionData({
         abi,
         data,
       });
 
-      console.log(`[DEBUG] Successfully decoded function: ${decoded.functionName}`);
+      console.log(`[ABI] Successfully decoded function: ${decoded.functionName}`);
       return {
         name: decoded.functionName,
         args: Array.isArray(decoded.args) ? decoded.args : [decoded.args],
       };
-    } catch (error) {
-      console.warn(
-        `Failed to decode function data for ${address} with selector ${selector}:`,
-        error,
+    } catch {
+      console.log(
+        `[ABI] Failed to decode with Etherscan ABI, trying OpenChain API for selector ${selector}`,
       );
+
+      try {
+        // Try OpenChain API as fallback
+        const response = await fetch(
+          `https://api.openchain.xyz/signature-database/v1/lookup?function=${selector}&filter=true`,
+        );
+        const result = await response.json();
+
+        if (result.ok && result.result.function[selector]?.[0]?.name) {
+          const functionName = result.result.function[selector][0].name;
+          console.log(`[ABI] Successfully decoded function using OpenChain API: ${functionName}`);
+
+          // For now, we'll just return the function name without args since we don't have the ABI
+          // TODO: We could potentially parse the function signature to get the arg types
+          return {
+            name: functionName,
+            args: [],
+          };
+        }
+      } catch (openChainError) {
+        console.warn('[ABI] Failed to decode using OpenChain API:', openChainError);
+      }
+
+      console.warn(`[ABI] Failed to decode function data for ${address} with selector ${selector}`);
       return null;
     }
   } catch (error) {
-    console.error(`Error decoding function data for ${address}:`, error);
+    console.error(`[ABI] Error decoding function data for ${address}:`, error);
     return null;
   }
 }
