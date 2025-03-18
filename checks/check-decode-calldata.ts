@@ -33,7 +33,7 @@ export const checkDecodeCalldata: ProposalCheck = {
         if (!call) {
           // If we can't find the call in the trace, add a warning
           // Skip the warning for ETH transfers which might not appear in the trace
-          if (!(calldata === '0x' && BigInt(proposal.values[i].toString()) > 0n)) {
+          if (!(calldata === '0x' && BigInt(proposal.values?.[i].toString() ?? '0') > 0n)) {
             const msg = `Could not find matching call for target ${proposal.targets[i]} with calldata ${calldata}`;
             warnings.push(msg);
           }
@@ -43,7 +43,7 @@ export const checkDecodeCalldata: ProposalCheck = {
             from: deps.timelock.address,
             to: proposal.targets[i],
             input: calldata,
-            value: proposal.values[i].toString(),
+            value: proposal.values?.[i].toString() ?? '0',
           } as FluffyCall;
         } else {
           // If we found the call, check for subcalls with the same input data
