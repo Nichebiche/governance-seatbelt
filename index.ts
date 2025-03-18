@@ -5,6 +5,7 @@
 import { getAddress } from '@ethersproject/address';
 import type { Contract } from 'ethers';
 import type { BigNumber } from 'ethers';
+import { existsSync } from 'node:fs';
 import ALL_CHECKS from './checks';
 import { generateAndSaveReports } from './presentation/report';
 import type {
@@ -45,7 +46,7 @@ async function main() {
     const config: SimulationConfig = await import(configPath).then((d) => d.config); // dynamic path `import` statements not allowed
 
     governorType = await inferGovernorType(config.governorAddress);
-    governor = await getGovernor(governorType, config.governorAddress);
+    governor = getGovernor(governorType, config.governorAddress);
     const proposalData = {
       governor,
       provider,
@@ -105,7 +106,9 @@ async function main() {
 
     // Load cached proposals
     for (const cachedProposal of cachedProposals) {
-      console.log(`Using cached simulation for ${DAO_NAME} proposal ${cachedProposal.id}...`);
+      console.log(
+        `Using cached simulation and reports for ${DAO_NAME} proposal ${cachedProposal.id}...`,
+      );
       const cachedData = getCachedProposal(
         DAO_NAME,
         GOVERNOR_ADDRESS,
@@ -113,6 +116,12 @@ async function main() {
       );
 
       if (cachedData) {
+        // If we have cached data and the reports already exist, skip this proposal
+        const reportPath = `./reports/${DAO_NAME}/${GOVERNOR_ADDRESS}/${cachedProposal.id}.md`;
+        if (existsSync(reportPath)) {
+          console.log(`  Using cached report for proposal ${cachedProposal.id}`);
+          continue;
+        }
         simOutputs.push(cachedData);
       }
     }
@@ -147,10 +156,53 @@ async function main() {
         };
 
         const { sim, proposal, latestBlock } = await simulate(config);
-        const simulationData = { sim, proposal, latestBlock, config, deps: proposalData };
+        const simulationData: SimulationData & { checkResults?: AllCheckResults } = {
+          sim,
+          proposal,
+          latestBlock,
+          config,
+          deps: proposalData,
+        };
+
+        // Run checks immediately after simulation
+        console.log(`  Running checks for proposal ${simProposal.id}...`);
+        const checkResults: AllCheckResults = Object.fromEntries(
+          await Promise.all(
+            Object.keys(ALL_CHECKS).map(async (checkId) => [
+              checkId,
+              {
+                name: ALL_CHECKS[checkId].name,
+                result: await ALL_CHECKS[checkId].checkProposal(proposal, sim, proposalData),
+              },
+            ]),
+          ),
+        );
+
+        // Generate reports immediately
+        const [startBlock, endBlock] = await Promise.all([
+          proposal.startBlock <= latestBlock.number
+            ? provider.getBlock(Number(proposal.startBlock))
+            : null,
+          proposal.endBlock <= latestBlock.number
+            ? provider.getBlock(Number(proposal.endBlock))
+            : null,
+        ]);
+
+        // Save reports
+        const dir = `./reports/${config.daoName}/${config.governorAddress}`;
+        await generateAndSaveReports(
+          governorType,
+          { start: startBlock, end: endBlock, current: latestBlock },
+          proposal,
+          checkResults,
+          dir,
+        );
+
+        // Cache everything together
+        simulationData.checkResults = checkResults;
         simOutputs.push(simulationData);
 
-        // Cache the simulation results
+        // Cache the simulation results with check results included
         cacheProposal(
           DAO_NAME,
           GOVERNOR_ADDRESS,
@@ -166,52 +218,8 @@ async function main() {
     }
   }
 
-  // --- Run proposal checks and save output ---
-  // Generate the proposal data and dependencies needed by checks
-  const proposalData = {
-    governor,
-    provider,
-    timelock: await getTimelock(governorType, governor.address),
-  };
-
-  console.log('Starting proposal checks and report generation...');
-  for (const simOutput of simOutputs) {
-    // Run checks
-    const { sim, proposal, latestBlock, config } = simOutput;
-    console.log(`  Running for proposal ID ${formatProposalId(governorType, proposal.id!)}...`);
-    const checkResults: AllCheckResults = Object.fromEntries(
-      await Promise.all(
-        Object.keys(ALL_CHECKS).map(async (checkId) => [
-          checkId,
-          {
-            name: ALL_CHECKS[checkId].name,
-            result: await ALL_CHECKS[checkId].checkProposal(proposal, sim, proposalData),
-          },
-        ]),
-      ),
-    );
-
-    // Generate markdown report.
-    const [startBlock, endBlock] = await Promise.all([
-      proposal.startBlock <= latestBlock.number
-        ? provider.getBlock(Number(proposal.startBlock))
-        : null,
-      proposal.endBlock <= latestBlock.number ? provider.getBlock(Number(proposal.endBlock)) : null,
-    ]);
-
-    // Save markdown report to a file.
-    // GitHub artifacts are flattened (folder structure is not preserved), so we include the DAO name in the filename.
-    const dir = `./reports/${config.daoName}/${config.governorAddress}`;
-    await generateAndSaveReports(
-      governorType,
-      { start: startBlock, end: endBlock, current: latestBlock },
-      proposal,
-      checkResults,
-      dir,
-    );
-  }
-
-  console.log('Done!');
+  // Remove the separate check and report generation loop since we now do it inline
+  console.log('All done!');
 }
 
 main()
