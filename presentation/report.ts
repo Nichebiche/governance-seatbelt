@@ -347,7 +347,7 @@ export async function generateAndSaveReports(
     const proposalData = {
       id: id,
       targets: proposal.targets.map((target) => target as `0x${string}`),
-      values: proposal.values.map((value) => BigInt(value.toString())),
+      values: (proposal.values || []).map((value) => BigInt(value.toString())),
       signatures: proposal.signatures,
       calldatas: proposal.calldatas.map((data) => data as `0x${string}`),
       description: proposal.description,
