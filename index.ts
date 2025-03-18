@@ -2,10 +2,10 @@
  * @notice Entry point for executing a single proposal against a forked mainnet
  */
 
+import { existsSync } from 'node:fs';
 import { getAddress } from '@ethersproject/address';
 import type { Contract } from 'ethers';
 import type { BigNumber } from 'ethers';
-import { existsSync } from 'node:fs';
 import ALL_CHECKS from './checks';
 import { generateAndSaveReports } from './presentation/report';
 import type {
