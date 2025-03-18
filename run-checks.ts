@@ -81,12 +81,10 @@ async function main() {
   // Generate markdown report
   console.log('Generating report...');
   const [startBlock, endBlock] = await Promise.all([
-    proposal.startBlock.toNumber() <= latestBlock.number
-      ? provider.getBlock(proposal.startBlock.toNumber())
+    proposal.startBlock <= latestBlock.number
+      ? provider.getBlock(Number(proposal.startBlock))
       : null,
-    proposal.endBlock.toNumber() <= latestBlock.number
-      ? provider.getBlock(proposal.endBlock.toNumber())
-      : null,
+    proposal.endBlock <= latestBlock.number ? provider.getBlock(Number(proposal.endBlock)) : null,
   ]);
 
   // Save markdown report to a file

@@ -32,7 +32,7 @@ jobs:
       - name: Cache proposal simulation results
         uses: actions/cache@v4
         with:
-          path: cache/proposals
+          path: cache
           key: ${{ runner.os }}-proposals-${{ hashFiles('**/package-lock.json', '**/yarn.lock') }}
           restore-keys: |
             ${{ runner.os }}-proposals-

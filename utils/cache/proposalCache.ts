@@ -1,44 +1,44 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { BigNumber } from 'ethers';
 import { getAddress } from 'viem';
 import type { SimulationData } from '../../types';
-import type { ProposalCacheEntry } from './types';
+import type { NeedsSimulationParams, ProposalCacheEntry } from './types';
 
-// Cache directory path - use a non-gitignored location
+// Cache directory path
 const CACHE_DIR = join(process.cwd(), 'cache');
-const PROPOSAL_CACHE_DIR = join(CACHE_DIR, 'proposals');
 
 // Ensure cache directory exists
-if (!existsSync(PROPOSAL_CACHE_DIR)) {
-  mkdirSync(PROPOSAL_CACHE_DIR, { recursive: true });
+if (!existsSync(CACHE_DIR)) {
+  mkdirSync(CACHE_DIR, { recursive: true });
 }
 
-/**
- * Gets the cache key for a proposal
- */
-function getCacheKey(daoName: string, governorAddress: string, proposalId: string): string {
-  return `${daoName}-${governorAddress}-${proposalId}`;
-}
+function isValidCachedProposal(data: unknown): data is ProposalCacheEntry {
+  if (!data || typeof data !== 'object') return false;
+  const entry = data as ProposalCacheEntry;
 
-/**
- * Gets the cache file path for a proposal
- */
-function getCacheFilePath(daoName: string, governorAddress: string, proposalId: string): string {
-  const cacheKey = getCacheKey(daoName, governorAddress, proposalId);
-  return join(PROPOSAL_CACHE_DIR, `${cacheKey}.json`);
-}
+  if (!entry.timestamp || typeof entry.timestamp !== 'number') return false;
+  if (entry.proposalState !== null && typeof entry.proposalState !== 'string') return false;
+  if (!entry.simulationData || typeof entry.simulationData !== 'object') return false;
 
-/**
- * Checks if a proposal is cached
- */
-export function isProposalCached(
-  daoName: string,
-  governorAddress: string,
-  proposalId: string,
-): boolean {
-  const cachePath = getCacheFilePath(daoName, governorAddress, proposalId);
-  return existsSync(cachePath);
+  const simData = entry.simulationData;
+  if (!simData.proposal || typeof simData.proposal !== 'object') return false;
+
+  const proposal = simData.proposal;
+  // Required fields
+  if (!proposal.proposalId || typeof proposal.proposalId !== 'string') return false;
+  if (!proposal.id || typeof proposal.id !== 'string') return false;
+
+  // Optional fields should be of correct type if present
+  if (proposal.startBlock && typeof proposal.startBlock !== 'string') return false;
+  if (proposal.endBlock && typeof proposal.endBlock !== 'string') return false;
+  if (proposal.values && !Array.isArray(proposal.values)) return false;
+  if (proposal.targets && !Array.isArray(proposal.targets)) return false;
+  if (proposal.proposer && typeof proposal.proposer !== 'string') return false;
+  if (proposal.description && typeof proposal.description !== 'string') return false;
+  if (proposal.signatures && !Array.isArray(proposal.signatures)) return false;
+  if (proposal.calldatas && !Array.isArray(proposal.calldatas)) return false;
+
+  return true;
 }
 
 /**
@@ -48,33 +48,58 @@ export function getCachedProposal(
   daoName: string,
   governorAddress: string,
   proposalId: string,
-): ProposalCacheEntry | null {
-  const cachePath = getCacheFilePath(daoName, governorAddress, proposalId);
-  try {
-    if (existsSync(cachePath)) {
-      const data = readFileSync(cachePath, 'utf8');
-      const parsed = JSON.parse(data);
-
-      // Convert string values back to BigNumber objects
-      if (parsed.simulationData?.proposal) {
-        const proposal = parsed.simulationData.proposal;
-        if (proposal.startBlock) proposal.startBlock = BigNumber.from(proposal.startBlock);
-        if (proposal.endBlock) proposal.endBlock = BigNumber.from(proposal.endBlock);
-        if (proposal.id) proposal.id = BigNumber.from(proposal.id);
-        if (proposal.proposalId) proposal.proposalId = BigNumber.from(proposal.proposalId);
-        if (proposal.values)
-          proposal.values = proposal.values.map((v: string) => BigNumber.from(v));
-        if (proposal.targets) proposal.targets = proposal.targets.map((t: string) => getAddress(t));
-        if (proposal.signatures) proposal.signatures = proposal.signatures.map((s: string) => s);
-        if (proposal.calldatas) proposal.calldatas = proposal.calldatas.map((c: string) => c);
-      }
-
-      return parsed;
-    }
-  } catch (error) {
-    console.warn(`Error reading cache for proposal ${proposalId}:`, error);
+): SimulationData | null {
+  if (proposalId === 'undefined') {
+    throw new Error('Proposal ID is required');
   }
-  return null;
+
+  try {
+    const cacheDir = join(CACHE_DIR, daoName, governorAddress);
+    const cacheFile = join(cacheDir, `${proposalId}.json`);
+
+    if (!existsSync(cacheFile)) {
+      return null;
+    }
+
+    const fileContent = readFileSync(cacheFile, 'utf-8');
+    const parsedData = JSON.parse(fileContent);
+
+    if (!isValidCachedProposal(parsedData)) {
+      console.warn(`[Cache] Invalid cache format for proposal ${proposalId}`);
+      return null;
+    }
+
+    const cachedData = parsedData.simulationData;
+    const proposal = cachedData.proposal;
+
+    // Convert string values back to bigint
+    const startBlock = BigInt(proposal.startBlock);
+    const endBlock = BigInt(proposal.endBlock);
+    const id = BigInt(proposal.id);
+    const proposalIdBigInt = BigInt(proposal.proposalId);
+    const targets = proposal.targets.map((t) => getAddress(t));
+    const values = proposal.values.map((v) => BigInt(v));
+
+    return {
+      ...cachedData,
+      proposal: {
+        ...proposal,
+        startBlock,
+        endBlock,
+        id,
+        proposalId: proposalIdBigInt,
+        values,
+        targets,
+        proposer: proposal.proposer,
+        description: proposal.description,
+        signatures: proposal.signatures,
+        calldatas: proposal.calldatas,
+      },
+    };
+  } catch (error) {
+    console.error(`[Cache] Error reading cache for proposal ${proposalId}:`, error);
+    return null;
+  }
 }
 
 /**
@@ -87,76 +112,84 @@ export function cacheProposal(
   proposalState: string | null,
   simulationData: SimulationData,
 ): void {
-  const cachePath = getCacheFilePath(daoName, governorAddress, proposalId);
   try {
-    // Ensure the cache directory exists
-    if (!existsSync(PROPOSAL_CACHE_DIR)) {
-      mkdirSync(PROPOSAL_CACHE_DIR, { recursive: true });
+    const cacheDir = join(CACHE_DIR, daoName, governorAddress);
+    if (!existsSync(cacheDir)) {
+      mkdirSync(cacheDir, { recursive: true });
     }
 
-    // Create a deep copy of the simulation data to avoid modifying the original
-    const cachedData = JSON.parse(JSON.stringify(simulationData));
-
-    // Convert BigNumber values to strings for storage
-    if (cachedData.proposal) {
-      const proposal = cachedData.proposal;
-      if (proposal.startBlock) proposal.startBlock = proposal.startBlock.toString();
-      if (proposal.endBlock) proposal.endBlock = proposal.endBlock.toString();
-      if (proposal.id) proposal.id = proposal.id.toString();
-      if (proposal.proposalId) proposal.proposalId = proposal.proposalId.toString();
-      if (proposal.values) proposal.values = proposal.values.map((v: BigNumber) => v.toString());
-      if (proposal.targets) proposal.targets = proposal.targets.map((t: string) => getAddress(t));
-      if (proposal.signatures) proposal.signatures = proposal.signatures.map((s: string) => s);
-      if (proposal.calldatas) proposal.calldatas = proposal.calldatas.map((c: string) => c);
-    }
-
-    // Create cache entry
-    const cacheEntry: ProposalCacheEntry = {
-      timestamp: Date.now(),
-      proposalState: proposalState || 'Unknown',
-      simulationData: cachedData,
+    // Convert BigInt values to strings before caching
+    const proposal = simulationData.proposal;
+    const cachedProposal = {
+      ...proposal,
+      startBlock: proposal.startBlock.toString(),
+      endBlock: proposal.endBlock.toString(),
+      id: proposal.id.toString(),
+      proposalId,
+      values: proposal.values ? proposal.values.map((v) => v.toString()) : [],
+      targets: proposal.targets.map((t) => getAddress(t)),
+      proposer: proposal.proposer,
+      description: proposal.description,
+      signatures: proposal.signatures,
+      calldatas: proposal.calldatas,
     };
 
-    // Write to cache file
-    writeFileSync(cachePath, JSON.stringify(cacheEntry, null, 2));
+    const cachedData = {
+      timestamp: Date.now(),
+      proposalState,
+      simulationData: {
+        ...simulationData,
+        proposal: cachedProposal,
+      },
+    };
+
+    const cacheFile = join(cacheDir, `${proposalId}.json`);
+    writeFileSync(cacheFile, JSON.stringify(cachedData, null, 2));
   } catch (error) {
-    console.warn(`Error caching proposal ${proposalId}:`, error);
+    console.error(`Error caching proposal ${proposalId}:`, error);
   }
 }
 
 /**
  * Checks if a proposal needs to be simulated based on its cache status
  */
-export function needsSimulation(
-  daoName: string,
-  governorAddress: string,
-  proposalId: string,
-  currentState: string,
-): boolean {
-  // If we don't have a current state, we should simulate
-  if (!currentState) {
+export function needsSimulation({
+  daoName,
+  governorAddress,
+  proposalId,
+  currentState,
+}: NeedsSimulationParams): boolean {
+  try {
+    const cacheDir = join(CACHE_DIR, daoName, governorAddress);
+    const cacheFile = join(cacheDir, `${proposalId}.json`);
+
+    if (!existsSync(cacheFile)) {
+      return true;
+    }
+
+    const fileContent = readFileSync(cacheFile, 'utf-8');
+    const parsedData = JSON.parse(fileContent);
+
+    if (!isValidCachedProposal(parsedData)) {
+      return true;
+    }
+
+    // Check if the proposal is in a terminal state
+    const terminalStates = ['Executed', 'Cancelled', 'Expired'];
+    if (terminalStates.includes(parsedData.proposalState || '')) {
+      return false;
+    }
+
+    // Check if the current state matches the cached state
+    if (parsedData.proposalState !== currentState) {
+      return true;
+    }
+
+    // Check cache age (3 hours to match workflow schedule)
+    const cacheAge = Date.now() - parsedData.timestamp;
+    return cacheAge > 3 * 60 * 60 * 1000;
+  } catch (error) {
+    console.error(`[Cache] Error checking cache for proposal ${proposalId}:`, error);
     return true;
   }
-
-  const cachedEntry = getCachedProposal(daoName, governorAddress, proposalId);
-  if (!cachedEntry) {
-    return true;
-  }
-
-  // List of terminal states where we don't need to re-simulate
-  const terminalStates = ['Executed', 'Defeated', 'Expired', 'Canceled'];
-
-  // If the proposal is in a terminal state and we have cached data, we don't need to re-simulate
-  if (terminalStates.includes(currentState)) {
-    return false;
-  }
-
-  // For active proposals, re-simulate if:
-  // 1. The state has changed
-  // 2. The cache is older than 3 hours (matching our workflow schedule)
-  const threeHours = 3 * 60 * 60 * 1000; // 3 hours in milliseconds
-  const isStale = Date.now() - cachedEntry.timestamp > threeHours;
-  const stateChanged = cachedEntry.proposalState !== currentState;
-
-  return isStale || stateChanged;
 }

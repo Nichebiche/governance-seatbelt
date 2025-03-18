@@ -215,13 +215,8 @@ async function prettifyCalldata(
 
   // Try to decode using Etherscan ABI first
   try {
-    console.log(
-      `[DEBUG] Trying to decode using Etherscan ABI for ${target} with selector ${selector}`,
-    );
     const decoded = await decodeFunctionWithAbi(target, call.input as `0x${string}`);
     if (decoded) {
-      console.log(`[DEBUG] Successfully decoded using Etherscan ABI: ${decoded.name}`);
-
       // Cache the decoded function
       decodedFunctionCache[cacheKey] = decoded;
 
@@ -240,7 +235,6 @@ async function prettifyCalldata(
       return description;
     }
 
-    console.log(`[DEBUG] Failed to decode using Etherscan ABI for ${target}`);
     warnings.push(
       `Failed to decode function with selector ${selector} for contract ${target} using Etherscan ABI`,
     );
@@ -254,13 +248,11 @@ async function prettifyCalldata(
   // Handle token-related actions
   const isTokenAction = selector in TOKEN_HANDLERS;
   if (isTokenAction) {
-    console.log(`[DEBUG] Using token handler for selector ${selector}`);
     const { symbol, decimals } = await fetchTokenMetadata(call.to);
     return TOKEN_HANDLERS[selector](call, decimals || 0, symbol, contractIdentifier);
   }
 
   // Generic handling for non-token actions
-  console.log(`[DEBUG] Using generic handling for ${target} with selector ${selector}`);
   const sig = getSignature(call);
   return getDescription(contractIdentifier, sig, call);
 }

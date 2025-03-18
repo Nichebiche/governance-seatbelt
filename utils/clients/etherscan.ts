@@ -1,7 +1,7 @@
-import { getAddress } from '@ethersproject/address';
-import type { Abi } from 'viem';
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
+import { getAddress } from '@ethersproject/address';
+import type { Abi } from 'viem';
 
 // Cache directory path - use a non-gitignored location
 const CACHE_DIR = join(process.cwd(), 'cache');
@@ -40,22 +40,19 @@ function getAbiCacheFilePath(address: string, chainId: number): string {
  * @returns The parsed ABI or null if not found
  */
 export async function fetchContractAbi(address: string, chainId = 1): Promise<Abi | null> {
-  console.log(`[DEBUG] Fetching ABI for ${address} on chain ${chainId}`);
+  const normalizedAddress = getAddress(address);
   try {
-    // Normalize the address
-    const normalizedAddress = getAddress(address);
-
     // Check in-memory cache first
     const cacheKey = `${chainId}:${normalizedAddress}`;
     if (abiCache[cacheKey]) {
-      console.log(`[ABI] Using in-memory cached ABI for ${normalizedAddress}`);
+      console.log(`[Cache] Using in-memory ABI for ${normalizedAddress}`);
       return abiCache[cacheKey];
     }
 
     // Check file cache
     const cachePath = getAbiCacheFilePath(address, chainId);
     if (existsSync(cachePath)) {
-      console.log(`[ABI] Using file cached ABI for ${normalizedAddress}`);
+      console.log(`[Cache] Using file-cached ABI for ${normalizedAddress}`);
       const cachedAbi = JSON.parse(readFileSync(cachePath, 'utf8'));
       abiCache[cacheKey] = cachedAbi;
       return cachedAbi;
@@ -80,13 +77,10 @@ export async function fetchContractAbi(address: string, chainId = 1): Promise<Ab
     let retryCount = 0;
     let data: EtherscanApiResponse | undefined;
 
-    while (retryCount < maxRetries) {
-      console.log(
-        `[ABI] Fetching new ABI from Etherscan for ${normalizedAddress} (attempt ${retryCount + 1}/${maxRetries})`,
-      );
+    console.log(`[Cache] Fetching new ABI for ${normalizedAddress} from Etherscan`);
 
+    while (retryCount < maxRetries) {
       // Add a delay before making the API call to avoid rate limiting
-      // Etherscan free API keys are limited to 5 calls per second
       await delay(1000); // 1000ms delay to be more conservative with rate limiting
 
       try {
@@ -100,12 +94,11 @@ export async function fetchContractAbi(address: string, chainId = 1): Promise<Ab
         }
 
         console.warn(
-          `[ABI] Failed to fetch ABI for ${normalizedAddress} (attempt ${retryCount + 1}/${maxRetries}): ${data.message || 'Unknown error'}, Status: ${data.status}, Result: ${data.result}`,
+          `[ABI] Failed to fetch ABI for ${normalizedAddress} (attempt ${retryCount + 1}/${maxRetries}): ${data.message || 'Unknown error'}`,
         );
         retryCount++;
 
         if (retryCount < maxRetries) {
-          // Exponential backoff for retries
           await delay(1000 * 2 ** retryCount);
         }
       } catch (error) {
@@ -116,7 +109,6 @@ export async function fetchContractAbi(address: string, chainId = 1): Promise<Ab
         retryCount++;
 
         if (retryCount < maxRetries) {
-          // Exponential backoff for retries
           await delay(1000 * 2 ** retryCount);
         }
       }
@@ -124,15 +116,13 @@ export async function fetchContractAbi(address: string, chainId = 1): Promise<Ab
 
     if (!data || data.status !== '1' || !data.result) {
       console.warn(
-        `[ABI] Failed to fetch ABI for ${normalizedAddress} after ${maxRetries} attempts: ${data?.message || 'Unknown error'}, Status: ${data?.status}, Result: ${data?.result}`,
+        `[ABI] Failed to fetch ABI for ${normalizedAddress} after ${maxRetries} attempts`,
       );
       return null;
     }
 
     // Parse the ABI
     try {
-      console.log(`[ABI] Successfully fetched and cached new ABI for ${normalizedAddress}`);
-
       // Parse the ABI string into a JSON object
       let abiJson: unknown;
       try {
@@ -157,6 +147,7 @@ export async function fetchContractAbi(address: string, chainId = 1): Promise<Ab
       // Cache the result both in memory and on disk
       abiCache[cacheKey] = abiJson as Abi;
       writeFileSync(cachePath, JSON.stringify(abiJson, null, 2));
+      console.log(`[Cache] Cached new ABI for ${normalizedAddress}`);
 
       return abiJson as Abi;
     } catch (error) {
@@ -195,39 +186,25 @@ export async function decodeFunctionWithAbi(
   data: `0x${string}`,
   chainId = 1,
 ): Promise<{ name: string; args: unknown[] } | null> {
-  console.log(
-    `[ABI] Attempting to decode function data for ${address} with selector ${data.slice(0, 10)}`,
-  );
+  const selector = data.slice(0, 10);
   try {
     const abi = await fetchContractAbi(address, chainId);
-    if (!abi) {
-      console.log(`[ABI] No ABI found for ${address}`);
-      return null;
-    }
-
-    // Find the function that matches the selector
-    const selector = data.slice(0, 10);
+    if (!abi) return null;
 
     // Import decodeFunctionData from viem in the function scope to avoid circular dependencies
     const { decodeFunctionData } = await import('viem');
 
     try {
-      console.log(`[ABI] Attempting to decode with Etherscan ABI for ${address}`);
       const decoded = decodeFunctionData({
         abi,
         data,
       });
 
-      console.log(`[ABI] Successfully decoded function: ${decoded.functionName}`);
       return {
         name: decoded.functionName,
         args: Array.isArray(decoded.args) ? decoded.args : [decoded.args],
       };
     } catch {
-      console.log(
-        `[ABI] Failed to decode with Etherscan ABI, trying OpenChain API for selector ${selector}`,
-      );
-
       try {
         // Try OpenChain API as fallback
         const response = await fetch(
@@ -237,10 +214,6 @@ export async function decodeFunctionWithAbi(
 
         if (result.ok && result.result.function[selector]?.[0]?.name) {
           const functionName = result.result.function[selector][0].name;
-          console.log(`[ABI] Successfully decoded function using OpenChain API: ${functionName}`);
-
-          // For now, we'll just return the function name without args since we don't have the ABI
-          // TODO: We could potentially parse the function signature to get the arg types
           return {
             name: functionName,
             args: [],
@@ -250,7 +223,6 @@ export async function decodeFunctionWithAbi(
         console.warn('[ABI] Failed to decode using OpenChain API:', openChainError);
       }
 
-      console.warn(`[ABI] Failed to decode function data for ${address} with selector ${selector}`);
       return null;
     }
   } catch (error) {

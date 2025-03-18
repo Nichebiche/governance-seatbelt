@@ -2,7 +2,6 @@ import fs, { promises as fsp, writeFileSync } from 'node:fs';
 import { existsSync, mkdirSync } from 'node:fs';
 import { join } from 'node:path';
 import type { Block } from '@ethersproject/abstract-provider';
-import type { BigNumber } from 'ethers';
 import { mdToPdf } from 'md-to-pdf';
 import type { Link, Root } from 'mdast';
 import rehypeSanitize from 'rehype-sanitize';
@@ -121,9 +120,9 @@ function formatTime(blockTimestamp: number): string {
  * @param current the current block
  * @param block the future block number
  */
-function estimateTime(current: Block, block: BigNumber): number {
-  if (block.lt(current.number)) throw new Error('end block is less than current');
-  return block.sub(current.number).mul(13).add(current.timestamp).toNumber();
+function estimateTime(current: Block, block: bigint): number {
+  if (block < BigInt(current.number)) throw new Error('end block is less than current');
+  return Number(block - BigInt(current.number)) * 13 + current.timestamp;
 }
 
 /**
@@ -397,7 +396,7 @@ _Updated as of block [${blocks.current.number}](https://etherscan.io/block/${blo
 - Proposer: ${toAddressLink(proposer)}
 - Start Block: ${startBlock} (${
     blocks.start
-      ? formatTime(blocks.start.timestamp)
+      ? formatTime(Number(blocks.start.timestamp))
       : formatTime(estimateTime(blocks.current, startBlock))
   })
 - End Block: ${endBlock} (${

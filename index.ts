@@ -85,17 +85,22 @@ async function main() {
 
     // Filter proposals that need simulation based on cache status
     const proposalsToSimulate = simProposals.filter((simProposal) =>
-      needsSimulation(DAO_NAME!, GOVERNOR_ADDRESS!, simProposal.id.toString(), simProposal.state),
+      needsSimulation({
+        daoName: DAO_NAME!,
+        governorAddress: GOVERNOR_ADDRESS!,
+        proposalId: simProposal.id.toString(),
+        currentState: simProposal.state,
+      }),
     );
 
     const cachedProposals = simProposals.filter(
       (simProposal) =>
-        !needsSimulation(
-          DAO_NAME!,
-          GOVERNOR_ADDRESS!,
-          simProposal.id.toString(),
-          simProposal.state,
-        ),
+        !needsSimulation({
+          daoName: DAO_NAME!,
+          governorAddress: GOVERNOR_ADDRESS!,
+          proposalId: simProposal.id.toString(),
+          currentState: simProposal.state,
+        }),
     );
 
     // Load cached proposals
@@ -108,7 +113,7 @@ async function main() {
       );
 
       if (cachedData) {
-        simOutputs.push(cachedData.simulationData);
+        simOutputs.push(cachedData);
       }
     }
 
@@ -188,12 +193,10 @@ async function main() {
 
     // Generate markdown report.
     const [startBlock, endBlock] = await Promise.all([
-      proposal.startBlock.toNumber() <= latestBlock.number
-        ? provider.getBlock(proposal.startBlock.toNumber())
+      proposal.startBlock <= latestBlock.number
+        ? provider.getBlock(Number(proposal.startBlock))
         : null,
-      proposal.endBlock.toNumber() <= latestBlock.number
-        ? provider.getBlock(proposal.endBlock.toNumber())
-        : null,
+      proposal.endBlock <= latestBlock.number ? provider.getBlock(Number(proposal.endBlock)) : null,
     ]);
 
     // Save markdown report to a file.
