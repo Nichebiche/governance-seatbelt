@@ -7,6 +7,9 @@ import { decodeFunctionWithAbi } from '../utils/clients/etherscan';
 import { getContractName } from '../utils/clients/tenderly';
 import { fetchTokenMetadata } from '../utils/contracts/erc20';
 
+// Cache for decoded function data to avoid redundant decoding
+const decodedFunctionCache: Record<string, { name: string; args: unknown[] }> = {};
+
 /**
  * Decodes proposal target calldata into a human-readable format
  */
@@ -197,6 +200,19 @@ async function prettifyCalldata(
   // Format the contract identifier using the contract information from the simulation
   const contractIdentifier = contract ? getContractName(contract) : `\`${target}\``;
 
+  // Check if we have a cached decoded function
+  const cacheKey = `${target}-${call.input}`;
+  if (decodedFunctionCache[cacheKey]) {
+    const decoded = decodedFunctionCache[cacheKey];
+    let description = `\`${call.from}\` calls \`${decoded.name}(`;
+    const formattedArgs = formatArgs(decoded.args);
+    if (formattedArgs) {
+      description += formattedArgs;
+    }
+    description += `)\` on ${contractIdentifier} (decoded from cache)`;
+    return description;
+  }
+
   // Try to decode using Etherscan ABI first
   try {
     console.log(
@@ -205,6 +221,9 @@ async function prettifyCalldata(
     const decoded = await decodeFunctionWithAbi(target, call.input as `0x${string}`);
     if (decoded) {
       console.log(`[DEBUG] Successfully decoded using Etherscan ABI: ${decoded.name}`);
+
+      // Cache the decoded function
+      decodedFunctionCache[cacheKey] = decoded;
 
       // Format the decoded function call
       let description = `\`${call.from}\` calls \`${decoded.name}(`;

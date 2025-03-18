@@ -1,12 +1,13 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { BigNumber } from 'ethers';
+import { getAddress } from 'viem';
 import type { SimulationData } from '../../types';
 import type { ProposalCacheEntry } from './types';
 
-// Cache directory path - use GITHUB_WORKSPACE in CI, process.cwd() locally
-const CACHE_DIR = process.env.GITHUB_WORKSPACE || process.cwd();
-const PROPOSAL_CACHE_DIR = join(CACHE_DIR, 'cache', 'proposals');
+// Cache directory path - use a non-gitignored location
+const CACHE_DIR = join(process.cwd(), 'cache');
+const PROPOSAL_CACHE_DIR = join(CACHE_DIR, 'proposals');
 
 // Ensure cache directory exists
 if (!existsSync(PROPOSAL_CACHE_DIR)) {
@@ -63,6 +64,9 @@ export function getCachedProposal(
         if (proposal.proposalId) proposal.proposalId = BigNumber.from(proposal.proposalId);
         if (proposal.values)
           proposal.values = proposal.values.map((v: string) => BigNumber.from(v));
+        if (proposal.targets) proposal.targets = proposal.targets.map((t: string) => getAddress(t));
+        if (proposal.signatures) proposal.signatures = proposal.signatures.map((s: string) => s);
+        if (proposal.calldatas) proposal.calldatas = proposal.calldatas.map((c: string) => c);
       }
 
       return parsed;
@@ -90,27 +94,31 @@ export function cacheProposal(
       mkdirSync(PROPOSAL_CACHE_DIR, { recursive: true });
     }
 
+    // Create a deep copy of the simulation data to avoid modifying the original
+    const cachedData = JSON.parse(JSON.stringify(simulationData));
+
+    // Convert BigNumber values to strings for storage
+    if (cachedData.proposal) {
+      const proposal = cachedData.proposal;
+      if (proposal.startBlock) proposal.startBlock = proposal.startBlock.toString();
+      if (proposal.endBlock) proposal.endBlock = proposal.endBlock.toString();
+      if (proposal.id) proposal.id = proposal.id.toString();
+      if (proposal.proposalId) proposal.proposalId = proposal.proposalId.toString();
+      if (proposal.values) proposal.values = proposal.values.map((v: BigNumber) => v.toString());
+      if (proposal.targets) proposal.targets = proposal.targets.map((t: string) => getAddress(t));
+      if (proposal.signatures) proposal.signatures = proposal.signatures.map((s: string) => s);
+      if (proposal.calldatas) proposal.calldatas = proposal.calldatas.map((c: string) => c);
+    }
+
     // Create cache entry
     const cacheEntry: ProposalCacheEntry = {
       timestamp: Date.now(),
       proposalState: proposalState || 'Unknown',
-      simulationData: simulationData,
+      simulationData: cachedData,
     };
 
     // Write to cache file
-    writeFileSync(
-      cachePath,
-      JSON.stringify(
-        cacheEntry,
-        (_, value) => {
-          if (value instanceof BigNumber) {
-            return value.toString();
-          }
-          return value;
-        },
-        2,
-      ),
-    );
+    writeFileSync(cachePath, JSON.stringify(cacheEntry, null, 2));
   } catch (error) {
     console.warn(`Error caching proposal ${proposalId}:`, error);
   }
@@ -145,9 +153,9 @@ export function needsSimulation(
 
   // For active proposals, re-simulate if:
   // 1. The state has changed
-  // 2. The cache is older than 1 hour
-  const oneHour = 60 * 60 * 1000; // 1 hour in milliseconds
-  const isStale = Date.now() - cachedEntry.timestamp > oneHour;
+  // 2. The cache is older than 3 hours (matching our workflow schedule)
+  const threeHours = 3 * 60 * 60 * 1000; // 3 hours in milliseconds
+  const isStale = Date.now() - cachedEntry.timestamp > threeHours;
   const stateChanged = cachedEntry.proposalState !== currentState;
 
   return isStale || stateChanged;

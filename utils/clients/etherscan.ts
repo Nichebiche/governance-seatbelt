@@ -1,7 +1,18 @@
 import { getAddress } from '@ethersproject/address';
 import type { Abi } from 'viem';
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { join } from 'node:path';
 
-// Cache for ABIs to avoid redundant API calls
+// Cache directory path - use a non-gitignored location
+const CACHE_DIR = join(process.cwd(), 'cache');
+const ABI_CACHE_DIR = join(CACHE_DIR, 'abis');
+
+// Ensure cache directory exists
+if (!existsSync(ABI_CACHE_DIR)) {
+  mkdirSync(ABI_CACHE_DIR, { recursive: true });
+}
+
+// In-memory cache for ABIs to avoid redundant API calls within the same session
 const abiCache: Record<string, Abi> = {};
 
 // Simple delay function to help with rate limiting
@@ -12,6 +23,14 @@ interface EtherscanApiResponse {
   status: string;
   message: string;
   result: string | null;
+}
+
+/**
+ * Gets the cache file path for an ABI
+ */
+function getAbiCacheFilePath(address: string, chainId: number): string {
+  const normalizedAddress = getAddress(address);
+  return join(ABI_CACHE_DIR, `${chainId}-${normalizedAddress}.json`);
 }
 
 /**
@@ -26,11 +45,20 @@ export async function fetchContractAbi(address: string, chainId = 1): Promise<Ab
     // Normalize the address
     const normalizedAddress = getAddress(address);
 
-    // Check cache first
+    // Check in-memory cache first
     const cacheKey = `${chainId}:${normalizedAddress}`;
     if (abiCache[cacheKey]) {
-      console.log(`[DEBUG] Using cached ABI for ${normalizedAddress}`);
+      console.log(`[DEBUG] Using in-memory cached ABI for ${normalizedAddress}`);
       return abiCache[cacheKey];
+    }
+
+    // Check file cache
+    const cachePath = getAbiCacheFilePath(address, chainId);
+    if (existsSync(cachePath)) {
+      console.log(`[DEBUG] Using file cached ABI for ${normalizedAddress}`);
+      const cachedAbi = JSON.parse(readFileSync(cachePath, 'utf8'));
+      abiCache[cacheKey] = cachedAbi;
+      return cachedAbi;
     }
 
     // Determine the API URL based on the chain ID
@@ -114,8 +142,9 @@ export async function fetchContractAbi(address: string, chainId = 1): Promise<Ab
         return null;
       }
 
-      // Cache the result
+      // Cache the result both in memory and on disk
       abiCache[cacheKey] = abiJson as Abi;
+      writeFileSync(cachePath, JSON.stringify(abiJson, null, 2));
 
       return abiJson as Abi;
     } catch (error) {
