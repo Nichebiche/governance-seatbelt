@@ -1,6 +1,5 @@
 import {
   encodeAbiParameters,
-  encodeFunctionData,
   getAddress,
   getContract,
   keccak256,
@@ -11,7 +10,6 @@ import type { GovernorType, ProposalEvent, ProposalStruct } from '../../types';
 import { publicClient } from '../clients/client';
 import { getBravoSlots, governorBravo } from './governor-bravo';
 import { getOzSlots, governorOz } from './governor-oz';
-import { timelock } from './timelock';
 import { erc20 as getErc20Token } from './erc20';
 import { GOVERNOR_ABI } from '../abis/GovernorBravo';
 import { GOVERNOR_OZ_ABI } from '../abis/GovernorOZ';
