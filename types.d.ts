@@ -1,6 +1,7 @@
 import type { JsonRpcProvider } from '@ethersproject/providers';
 import type { BigNumber, BigNumberish, Block, Contract } from 'ethers';
 import type { Address } from 'viem';
+import type { getGovernor, getTimelock } from './utils/contracts/governor';
 
 // --- Simulation configurations ---
 // TODO Consider refactoring to an enum instead of string.
@@ -61,16 +62,16 @@ export type ProposalActions = [
 // TODO If adding support for a third governor, instead of hardcoding optional governor-specific
 // fields, make this a union type of each governor's individual proposal type.
 export interface ProposalStruct {
-  id: BigNumber;
+  id: bigint;
   proposer?: string;
-  eta: BigNumber;
-  startBlock?: BigNumber; // Compound governor
-  startTime?: BigNumber; // OZ governor
-  endBlock?: BigNumber; // Compound governor
-  endTime?: BigNumber; // OZ governor
-  forVotes: BigNumber;
-  againstVotes: BigNumber;
-  abstainVotes: BigNumber;
+  eta: bigint;
+  startBlock?: bigint; // Compound governor
+  startTime?: bigint; // OZ governor
+  endBlock?: bigint; // Compound governor
+  endTime?: bigint; // OZ governor
+  forVotes: bigint;
+  againstVotes: bigint;
+  abstainVotes: bigint;
   canceled: boolean;
   executed: boolean;
 }
@@ -97,9 +98,9 @@ export type CheckResult = {
 };
 
 export type ProposalData = {
-  governor: Contract;
-  timelock: Contract;
-  provider: JsonRpcProvider;
+  governor: ReturnType<typeof getGovernor>;
+  timelock: ReturnType<typeof getTimelock>;
+  publicClient: PublicClient;
 };
 
 export interface ProposalCheck {

@@ -1,7 +1,14 @@
 import { erc20Abi, erc20Abi_bytes32, getAddress, type Address } from 'viem';
 import { publicClient } from '../clients/client';
+import { getContract } from 'viem';
 
 const SAI = '0x89d24A6b4CcB1B6fAA2625fE562bDD9a23260359';
+
+export function erc20(address: Address) {
+  const tokenAddress = getAddress(address);
+  const abi = tokenAddress === SAI ? erc20Abi_bytes32 : erc20Abi;
+  return getContract({ abi, address: tokenAddress, client: publicClient });
+}
 
 export async function fetchTokenMetadata(address: Address) {
   const tokenAddress = getAddress(address);

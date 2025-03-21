@@ -29,5 +29,5 @@ export function getSolidityStorageSlotBytes(mappingSlot: string, key: BigNumberi
 }
 
 export function to32ByteHexString(val: BigNumberish) {
-  return hexZeroPad(BigNumber.from(val).toHexString(), 32);
+  return hexZeroPad(BigNumber.from(val).toHexString(), 32) as `0x${string}`;
 }

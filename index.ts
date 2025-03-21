@@ -11,6 +11,7 @@ import { generateAndSaveReports } from './presentation/report';
 import type {
   AllCheckResults,
   GovernorType,
+  ProposalData,
   SimulationConfig,
   SimulationConfigBase,
   SimulationData,
@@ -27,6 +28,7 @@ import {
   inferGovernorType,
 } from './utils/contracts/governor';
 import { PROPOSAL_STATES } from './utils/contracts/governor-bravo';
+import { publicClient } from './utils/clients/client';
 
 /**
  * @notice Simulate governance proposals and run proposal checks against them
@@ -47,10 +49,11 @@ async function main() {
 
     governorType = await inferGovernorType(config.governorAddress);
     governor = getGovernor(governorType, config.governorAddress);
-    const proposalData = {
+
+    const proposalData: ProposalData = {
       governor,
-      provider,
       timelock: await getTimelock(governorType, governor.address),
+      publicClient,
     };
 
     const { sim, proposal, latestBlock } = await simulate(config);
