@@ -1,7 +1,7 @@
-import { Contract } from 'ethers';
-import { provider } from '../clients/ethers';
+import type { Address } from 'viem';
+import { publicClient } from '../clients/client';
 
-const TIMELOCK_ABI = [
+const timelockAbi = [
   'function executeTransaction(address target, uint256 value, string signature, bytes data, uint256 eta) payable returns (bytes)',
   'function acceptAdmin()',
   'function pendingAdmin() view returns (address)',
@@ -22,6 +22,25 @@ const TIMELOCK_ABI = [
   'event CancelTransaction(bytes32 indexed txHash, address indexed target, uint256 value, string signature, bytes data, uint256 eta)',
   'event ExecuteTransaction(bytes32 indexed txHash, address indexed target, uint256 value, string signature, bytes data, uint256 eta)',
   'event QueueTransaction(bytes32 indexed txHash, address indexed target, uint256 value, string signature, bytes data, uint256 eta)',
-];
+] as const;
 
-export const timelock = (address: string) => new Contract(address, TIMELOCK_ABI, provider);
+export function timelock(address: Address) {
+  const contract = { address, abi: timelockAbi } as const;
+
+  return {
+    read: {
+      admin: () => publicClient.readContract({ ...contract, functionName: 'admin' }),
+      pendingAdmin: () => publicClient.readContract({ ...contract, functionName: 'pendingAdmin' }),
+      delay: () => publicClient.readContract({ ...contract, functionName: 'delay' }),
+      maximumDelay: () => publicClient.readContract({ ...contract, functionName: 'MAXIMUM_DELAY' }),
+      minimumDelay: () => publicClient.readContract({ ...contract, functionName: 'MINIMUM_DELAY' }),
+      gracePeriod: () => publicClient.readContract({ ...contract, functionName: 'GRACE_PERIOD' }),
+      queuedTransactions: (txHash: `0x${string}`) =>
+        publicClient.readContract({
+          ...contract,
+          functionName: 'queuedTransactions',
+          args: [txHash],
+        }),
+    },
+  };
+}
