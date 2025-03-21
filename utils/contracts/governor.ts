@@ -227,11 +227,11 @@ export function hashOperationOz(
           { type: 'uint256' },
           { type: 'bytes' },
           { type: 'bytes32' },
-          { type: 'bytes32' }
+          { type: 'bytes32' },
         ],
-        [target, value, calldata, predecessor, salt]
-      )
-    )
+        [target, value, calldata, predecessor, salt],
+      ),
+    ),
   );
 }
 
@@ -253,23 +253,23 @@ export function hashOperationBatchOz(
           { type: 'uint256[]' },
           { type: 'bytes[]' },
           { type: 'bytes32' },
-          { type: 'bytes32' }
+          { type: 'bytes32' },
         ],
-        [targets, values, calldatas, predecessor, salt]
-      )
-    )
+        [targets, values, calldatas, predecessor, salt],
+      ),
+    ),
   );
 }
 
-export async function getImplementation(address: string, blockTag: number) {
+export async function getImplementation(address: Address, blockTag: bigint) {
   // First try calling an `implementation` method.
   const abi = ['function implementation() external view returns (address)'];
   try {
     const implementation = await publicClient.readContract({
-      address: address as Address,
+      address,
       abi,
       functionName: 'implementation',
-      blockNumber: BigInt(blockTag),
+      blockNumber: blockTag,
     });
     return implementation;
   } catch {}
@@ -278,12 +278,12 @@ export async function getImplementation(address: string, blockTag: number) {
   try {
     const slot = '0x360894a13ba1a3210667c828492db98dca3e2076cc3735a920a3ca505d382bbc' as const;
     const rawImplementation = await publicClient.getStorageAt({
-      address: address as Address,
+      address,
       slot,
-      blockNumber: BigInt(blockTag),
+      blockNumber: blockTag,
     });
     if (!rawImplementation) return null;
-    const implementation = getAddress(`0x${rawImplementation.slice(26)}`) as Address;
+    const implementation = getAddress(`0x${rawImplementation.slice(26)}`);
     if (implementation === '0x0000000000000000000000000000000000000000') return null;
     return implementation;
   } catch {}
