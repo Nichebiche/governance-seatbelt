@@ -1,5 +1,5 @@
 import type { Address } from 'viem';
-import { parseAbi } from 'viem';
+import { getContract, parseAbi } from 'viem';
 import { publicClient } from '../clients/client';
 
 export const timelockAbi = parseAbi([
@@ -26,22 +26,9 @@ export const timelockAbi = parseAbi([
 ]);
 
 export function timelock(address: Address) {
-  const contract = { address, abi: timelockAbi } as const;
-
-  return {
-    read: {
-      admin: async () => await publicClient.readContract({ ...contract, functionName: 'admin' }),
-      pendingAdmin: () => publicClient.readContract({ ...contract, functionName: 'pendingAdmin' }),
-      delay: () => publicClient.readContract({ ...contract, functionName: 'delay' }),
-      maximumDelay: () => publicClient.readContract({ ...contract, functionName: 'MAXIMUM_DELAY' }),
-      minimumDelay: () => publicClient.readContract({ ...contract, functionName: 'MINIMUM_DELAY' }),
-      gracePeriod: () => publicClient.readContract({ ...contract, functionName: 'GRACE_PERIOD' }),
-      queuedTransactions: (txHash: `0x${string}`) =>
-        publicClient.readContract({
-          ...contract,
-          functionName: 'queuedTransactions',
-          args: [txHash],
-        }),
-    },
-  };
+  return getContract({
+    address,
+    abi: timelockAbi,
+    client: publicClient,
+  });
 }
