@@ -97,9 +97,11 @@ export async function getProposal(
 export async function getTimelock(governorType: GovernorType, address: Address) {
   const governor = getGovernor(governorType, address);
   if (!governor) throw new Error('Governor not found');
-  if (governorType === 'bravo')
-    return getContract({ address, abi: GOVERNOR_ABI, client: publicClient });
-  return getContract({ address, abi: GOVERNOR_OZ_ABI, client: publicClient });
+  const contract =
+    governorType === 'bravo'
+      ? getContract({ address, abi: GOVERNOR_ABI, client: publicClient })
+      : getContract({ address, abi: GOVERNOR_OZ_ABI, client: publicClient });
+  return Promise.resolve(contract);
 }
 
 export async function getVotingToken(
