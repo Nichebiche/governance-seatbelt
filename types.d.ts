@@ -1,5 +1,3 @@
-import type { JsonRpcProvider } from '@ethersproject/providers';
-import type { BigNumber, BigNumberish, Block, Contract } from 'ethers';
 import type { Address } from 'viem';
 import type { getGovernor, getTimelock } from './utils/contracts/governor';
 
@@ -10,7 +8,7 @@ export type GovernorType = 'oz' | 'bravo';
 interface SimulationConfigBase {
   type: 'executed' | 'proposed' | 'new';
   daoName: string; // e.g. 'Compound' or 'Uniswap'
-  governorAddress: string; // address of the governor
+  governorAddress: Address; // address of the governor
   governorType: GovernorType;
 }
 
@@ -26,10 +24,10 @@ export interface SimulationConfigProposed extends SimulationConfigBase {
 
 export interface SimulationConfigNew extends SimulationConfigBase {
   type: 'new';
-  targets: string[];
-  values: BigNumberish[];
-  signatures: string[];
-  calldatas: string[];
+  targets: Address[];
+  values: bigint[];
+  signatures: `0x${string}`[];
+  calldatas: `0x${string}`[];
   description: string;
 }
 
