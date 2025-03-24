@@ -34,8 +34,7 @@ export async function inferGovernorType(address: Address): Promise<GovernorType>
 }
 
 export function getGovernor(governorType: GovernorType, address: Address) {
-  if (governorType === 'bravo') return governorBravo(address);
-  if (governorType === 'oz') return governorOz(address);
+  return governorType === 'bravo' ? governorBravo(address) : governorOz(address);
 }
 
 export async function getProposal(
@@ -294,3 +293,5 @@ export function formatProposalId(governorType: GovernorType, id: string | bigint
   if (governorType === 'oz') return `0x${bigIntId.toString(16)}`;
   return bigIntId.toString();
 }
+
+export type GetGovernorReturnType = ReturnType<typeof getGovernor>;

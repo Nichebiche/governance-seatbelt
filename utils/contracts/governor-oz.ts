@@ -1,32 +1,11 @@
 import type { Address } from 'viem';
-import { pad } from 'viem';
+import { getContract, pad } from 'viem';
+import { GOVERNOR_OZ_ABI } from '../abis/GovernorOZ';
 import { publicClient } from '../clients/client';
 import { getSolidityStorageSlotUint } from '../utils';
-import { GOVERNOR_OZ_ABI } from '../abis/GovernorOZ';
 
 export function governorOz(address: Address) {
-  const contract = { address, abi: GOVERNOR_OZ_ABI } as const;
-
-  return {
-    read: {
-      name: () => publicClient.readContract({ ...contract, functionName: 'name' }),
-      version: () => publicClient.readContract({ ...contract, functionName: 'version' }),
-      timelock: () => publicClient.readContract({ ...contract, functionName: 'timelock' }),
-      token: () => publicClient.readContract({ ...contract, functionName: 'token' }),
-      votingDelay: () => publicClient.readContract({ ...contract, functionName: 'votingDelay' }),
-      votingPeriod: () => publicClient.readContract({ ...contract, functionName: 'votingPeriod' }),
-      quorumVotes: () => publicClient.readContract({ ...contract, functionName: 'quorumVotes' }),
-      state: (proposalId: bigint) => publicClient.readContract({ ...contract, functionName: 'state', args: [proposalId] }),
-      proposalSnapshot: (proposalId: bigint) => publicClient.readContract({ ...contract, functionName: 'proposalSnapshot', args: [proposalId] }),
-      proposalDeadline: (proposalId: bigint) => publicClient.readContract({ ...contract, functionName: 'proposalDeadline', args: [proposalId] }),
-      proposalEta: (proposalId: bigint) => publicClient.readContract({ ...contract, functionName: 'proposalEta', args: [proposalId] }),
-      proposalVotes: (proposalId: bigint) => publicClient.readContract({ ...contract, functionName: 'proposalVotes', args: [proposalId] }),
-      hasVoted: (proposalId: bigint, account: Address) => publicClient.readContract({ ...contract, functionName: 'hasVoted', args: [proposalId, account] }),
-      getVotes: (account: Address, blockNumber: bigint) => publicClient.readContract({ ...contract, functionName: 'getVotes', args: [account, blockNumber] }),
-      quorum: (blockNumber: bigint) => publicClient.readContract({ ...contract, functionName: 'quorum', args: [blockNumber] }),
-      supportsInterface: (interfaceId: `0x${string}`) => publicClient.readContract({ ...contract, functionName: 'supportsInterface', args: [interfaceId] }),
-    },
-  };
+  return getContract({ address, abi: GOVERNOR_OZ_ABI, client: publicClient });
 }
 
 // All possible states a proposal might be in.
@@ -79,13 +58,21 @@ export function getOzSlots(proposalId: bigint) {
 
   return {
     votingToken: '0x9' as const, // slot of voting token, e.g. UNI, COMP  (getter is named after token, so can't generalize it that way),
-    canceled: pad(`0x${(BigInt(proposalCoreSlot) + canceledSlotOffset).toString(16)}` as `0x${string}`),
+    canceled: pad(
+      `0x${(BigInt(proposalCoreSlot) + canceledSlotOffset).toString(16)}` as `0x${string}`,
+    ),
     // We don't need to set the ETA for OZ governors because they don't use it to check which state
     // a proposal is in. Therefore we choose an arbitrary slot here for typing purposes and just
     // set the ETA in an arbitrary slot for consistency. This slot is `keccak256("we don't need this for OZ governor")`
     eta: '0x42a5ef1591012b6beeb9636e75b28a676a23c97ad46ae6d83e11f22f52da96cc' as const,
-    againstVotes: pad(`0x${(BigInt(proposalVotesSlot) + againstVotesOffset).toString(16)}` as `0x${string}`),
-    forVotes: pad(`0x${(BigInt(proposalVotesSlot) + forVotesOffset).toString(16)}` as `0x${string}`),
-    abstainVotes: pad(`0x${(BigInt(proposalVotesSlot) + abstainVotesOffset).toString(16)}` as `0x${string}`),
+    againstVotes: pad(
+      `0x${(BigInt(proposalVotesSlot) + againstVotesOffset).toString(16)}` as `0x${string}`,
+    ),
+    forVotes: pad(
+      `0x${(BigInt(proposalVotesSlot) + forVotesOffset).toString(16)}` as `0x${string}`,
+    ),
+    abstainVotes: pad(
+      `0x${(BigInt(proposalVotesSlot) + abstainVotesOffset).toString(16)}` as `0x${string}`,
+    ),
   };
 }
