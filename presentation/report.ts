@@ -1,7 +1,7 @@
 import fs, { promises as fsp, writeFileSync } from 'node:fs';
 import { existsSync, mkdirSync } from 'node:fs';
 import { join } from 'node:path';
-import type { Block } from '@ethersproject/abstract-provider';
+import type { Block } from 'viem';
 import { mdToPdf } from 'md-to-pdf';
 import type { Link, Root } from 'mdast';
 import rehypeSanitize from 'rehype-sanitize';
@@ -108,8 +108,8 @@ function getProposalTitle(description: string) {
  * Format a block timestamp which is always in epoch seconds to a human readable string
  * @param blockTimestamp the block timestamp to format
  */
-function formatTime(blockTimestamp: number): string {
-  return `${new Date(blockTimestamp * 1000).toLocaleString('en-US', {
+function formatTime(blockTimestamp: bigint): string {
+  return `${new Date(Number(blockTimestamp) * 1000).toLocaleString('en-US', {
     timeZone: 'America/New_York',
   })} ET`;
 }
@@ -119,9 +119,10 @@ function formatTime(blockTimestamp: number): string {
  * @param current the current block
  * @param block the future block number
  */
-function estimateTime(current: Block, block: bigint): number {
-  if (block < BigInt(current.number)) throw new Error('end block is less than current');
-  return Number(block - BigInt(current.number)) * 13 + current.timestamp;
+function estimateTime(current: Block, block: bigint): bigint {
+  if (!current.number) throw new Error('Current block number is null');
+  if (block < current.number) throw new Error('end block is less than current');
+  return (block - current.number) * BigInt(13) + current.timestamp;
 }
 
 /**
@@ -276,7 +277,7 @@ function generateStructuredReport(
     events,
     calldata,
     metadata: {
-      blockNumber: blocks.current.number.toString(),
+      blockNumber: blocks.current.number?.toString() ?? 'unknown',
       timestamp: blocks.current.timestamp.toString(),
       proposalId: formatProposalId(governorType, proposal.id!),
       proposer: proposal.proposer,
@@ -422,6 +423,8 @@ async function toMarkdownProposalReport(
 ): Promise<string> {
   const { id, proposer, targets, endBlock, startBlock, description } = proposal;
 
+  if (!blocks.current.number) throw new Error('Current block number is null');
+
   // Generate the report. We insert an empty table of contents header which is populated later using remark-toc.
   const report = `
 # ${getProposalTitle(description.trim())}
@@ -434,7 +437,7 @@ _Updated as of block [${blocks.current.number}](https://etherscan.io/block/${blo
 - Proposer: ${toAddressLink(proposer)}
 - Start Block: ${startBlock} (${
     blocks.start
-      ? formatTime(Number(blocks.start.timestamp))
+      ? formatTime(blocks.start.timestamp)
       : formatTime(estimateTime(blocks.current, startBlock))
   })
 - End Block: ${endBlock} (${
