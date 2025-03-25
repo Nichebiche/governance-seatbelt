@@ -82,7 +82,7 @@ export interface ProposalEvent {
   endBlock: bigint;
   description: string;
   targets: string[];
-  values: bigint[] | undefined;
+  values: bigint[];
   signatures: string[];
   calldatas: string[];
 }
