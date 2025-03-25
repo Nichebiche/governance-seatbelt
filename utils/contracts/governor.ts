@@ -4,6 +4,7 @@ import {
   getContract,
   keccak256,
   toBytes,
+  zeroAddress,
   type Address,
 } from 'viem';
 import type { GovernorType, ProposalEvent, ProposalStruct } from '../../types';
@@ -259,16 +260,19 @@ export function hashOperationBatchOz(
   );
 }
 
-export async function getImplementation(address: Address, blockTag: bigint) {
+export async function getImplementation(
+  address: Address,
+  blockTag: bigint,
+): Promise<Address | null> {
   // First try calling an `implementation` method.
   const abi = ['function implementation() external view returns (address)'];
   try {
-    const implementation = await publicClient.readContract({
+    const implementation = (await publicClient.readContract({
       address,
       abi,
       functionName: 'implementation',
       blockNumber: blockTag,
-    });
+    })) as Address;
     return implementation;
   } catch {}
 
@@ -282,7 +286,7 @@ export async function getImplementation(address: Address, blockTag: bigint) {
     });
     if (!rawImplementation) return null;
     const implementation = getAddress(`0x${rawImplementation.slice(26)}`);
-    if (implementation === '0x0000000000000000000000000000000000000000') return null;
+    if (implementation === zeroAddress) return null;
     return implementation;
   } catch {}
 

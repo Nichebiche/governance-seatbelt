@@ -1,8 +1,8 @@
 import { exec as execCallback } from 'node:child_process';
 import util from 'node:util';
-import { getAddress } from '@ethersproject/address';
 import { codeBlock } from '../presentation/report';
 import type { ProposalCheck } from '../types';
+import { getAddress } from 'viem';
 import { getContractName } from '../utils/clients/tenderly';
 import { ETHERSCAN_API_KEY } from '../utils/constants';
 import { getImplementation } from '../utils/contracts/governor';
@@ -34,7 +34,7 @@ export const checkSlither: ProposalCheck = {
     try {
       const implementation = await getImplementation(
         deps.governor.address,
-        sim.transaction.block_number,
+        BigInt(sim.transaction.block_number),
       );
       if (implementation) addressesToSkip.add(implementation);
     } catch (e) {
