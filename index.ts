@@ -67,8 +67,9 @@ async function main() {
     const proposalIds = await getProposalIds(governorType, GOVERNOR_ADDRESS, latestBlock.number);
     governor = getGovernor(governorType, GOVERNOR_ADDRESS);
 
-    // Now TypeScript knows governor is defined in this block
-    const states = await Promise.all(proposalIds.map((id) => governor.read.state([id])));
+    if (!governor) throw new Error('Failed to get governor');
+
+    const states = await Promise.all(proposalIds.map((id) => governor?.read.state([id])));
     const simProposals: { id: bigint; simType: SimulationConfigBase['type']; state: string }[] =
       proposalIds.map((id, i) => {
         const stateNum = String(states[i]) as keyof typeof PROPOSAL_STATES;
