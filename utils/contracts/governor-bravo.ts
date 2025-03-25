@@ -1,9 +1,9 @@
 import type { Address } from 'viem';
 import { pad } from 'viem';
+import { getContract } from 'viem';
+import { GOVERNOR_ABI } from '../abis/GovernorBravo';
 import { publicClient } from '../clients/client';
 import { getSolidityStorageSlotUint, to32ByteHexString } from '../utils';
-import { GOVERNOR_ABI } from '../abis/GovernorBravo';
-import { getContract } from 'viem';
 
 export function governorBravo(address: Address) {
   return getContract({ address, abi: GOVERNOR_ABI, client: publicClient });

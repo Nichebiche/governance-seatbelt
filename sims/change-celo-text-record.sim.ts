@@ -1,4 +1,4 @@
-import { namehash, parseAbi, encodeFunctionData } from 'viem';
+import { encodeFunctionData, namehash, parseAbi } from 'viem';
 /**
  * @notice Sample simulation configuration file for the Celo bridge reconfiguration proposal.
  */

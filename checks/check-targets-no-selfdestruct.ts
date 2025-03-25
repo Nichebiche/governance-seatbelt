@@ -1,6 +1,6 @@
+import { type PublicClient, getAddress } from 'viem';
 import { bullet, toAddressLink } from '../presentation/report';
 import type { ProposalCheck } from '../types';
-import { type PublicClient, getAddress } from 'viem';
 
 /**
  * Check all targets with code if they contain selfdestruct.

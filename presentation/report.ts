@@ -1,7 +1,6 @@
 import fs, { promises as fsp, writeFileSync } from 'node:fs';
 import { existsSync, mkdirSync } from 'node:fs';
 import { join } from 'node:path';
-import type { Block } from 'viem';
 import { mdToPdf } from 'md-to-pdf';
 import type { Link, Root } from 'mdast';
 import rehypeSanitize from 'rehype-sanitize';
@@ -14,6 +13,7 @@ import remarkToc from 'remark-toc';
 import { unified } from 'unified';
 import { visit } from 'unist-util-visit';
 import type { Visitor } from 'unist-util-visit';
+import type { Block } from 'viem';
 import type {
   AllCheckResults,
   GovernorType,

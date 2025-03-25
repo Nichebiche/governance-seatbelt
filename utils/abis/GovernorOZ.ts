@@ -37,5 +37,5 @@ export const GOVERNOR_OZ_ABI = parseAbi([
   'function updateTimelock(address newTimelock)',
   'function version() view returns (string)',
   'function votingDelay() view returns (uint256)',
-  'function votingPeriod() view returns (uint256)'
+  'function votingPeriod() view returns (uint256)',
 ]);

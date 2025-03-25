@@ -1,4 +1,4 @@
-import { parseUnits, parseAbi, encodeFunctionData } from 'viem';
+import { encodeFunctionData, parseAbi, parseUnits } from 'viem';
 /**
  * @notice Simulation configuration file for proposal 51.
  */

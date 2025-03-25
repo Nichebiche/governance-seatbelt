@@ -2,10 +2,12 @@
  * @notice Script to run checks for a specific proposal ID
  */
 
+import { getAddress } from 'viem';
 import ALL_CHECKS from './checks';
 import { generateAndSaveReports } from './presentation/report';
 import type { AllCheckResults, SimulationConfig } from './types';
 import { simulate } from './utils/clients/tenderly';
+import { publicClient } from './utils/clients/viem';
 import { DAO_NAME, GOVERNOR_ADDRESS } from './utils/constants';
 import {
   formatProposalId,
@@ -14,8 +16,6 @@ import {
   inferGovernorType,
 } from './utils/contracts/governor';
 import { PROPOSAL_STATES } from './utils/contracts/governor-bravo';
-import { getAddress } from 'viem';
-import { publicClient } from './utils/clients/viem';
 
 /**
  * @notice Run checks for a specific proposal ID

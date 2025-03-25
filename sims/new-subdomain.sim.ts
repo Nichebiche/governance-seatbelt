@@ -1,4 +1,4 @@
-import { labelhash, namehash, parseAbi, encodeFunctionData } from 'viem';
+import { encodeFunctionData, labelhash, namehash, parseAbi } from 'viem';
 /**
  * @notice Sample simulation configuration file for a proposal that does not exist on-chain.
  * This proposal configures ENS records so the Uniswap DAO Grants Voltz an additional use grant.

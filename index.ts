@@ -15,18 +15,18 @@ import type {
   SimulationData,
 } from './types';
 import { cacheProposal, getCachedProposal, needsSimulation } from './utils/cache/proposalCache';
+import { publicClient } from './utils/clients/client';
 import { simulate } from './utils/clients/tenderly';
 import { DAO_NAME, GOVERNOR_ADDRESS, SIM_NAME } from './utils/constants';
 import {
+  type GetGovernorReturnType,
   formatProposalId,
   getGovernor,
   getProposalIds,
   getTimelock,
   inferGovernorType,
-  type GetGovernorReturnType,
 } from './utils/contracts/governor';
 import { PROPOSAL_STATES } from './utils/contracts/governor-bravo';
-import { publicClient } from './utils/clients/client';
 
 /**
  * @notice Simulate governance proposals and run proposal checks against them

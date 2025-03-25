@@ -1,4 +1,4 @@
-import { parseUnits, encodeFunctionData, erc20Abi } from 'viem';
+import { encodeFunctionData, erc20Abi, parseUnits } from 'viem';
 /**
  * @notice Simulation configuration file for proposal 51.
  */

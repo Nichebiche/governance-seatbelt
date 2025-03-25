@@ -1,4 +1,4 @@
-import { formatEther, parseUnits, encodeFunctionData } from 'viem';
+import { encodeFunctionData, formatEther, parseUnits } from 'viem';
 /**
  * @notice Sample simulation configuration file for the arb lm distribution proposal.
  */

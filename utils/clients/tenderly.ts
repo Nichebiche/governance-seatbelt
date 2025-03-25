@@ -1,8 +1,16 @@
-import { publicClient } from './viem';
+import { writeFileSync } from 'node:fs';
 import mftch from 'micro-ftch';
 import type { FETCH_OPT } from 'micro-ftch';
-import { GOVERNOR_OZ_ABI } from '../constants/abi';
-import { writeFileSync } from 'node:fs';
+import type { Address } from 'viem';
+import {
+  encodeAbiParameters,
+  encodeFunctionData,
+  getAddress,
+  keccak256,
+  toBytes,
+  toHex,
+  zeroHash,
+} from 'viem';
 import type {
   ProposalData,
   ProposalEvent,
@@ -16,6 +24,7 @@ import type {
   TenderlyPayload,
   TenderlySimulation,
 } from '../../types';
+import { GOVERNOR_ABI } from '../abis/GovernorBravo';
 import {
   BLOCK_GAS_LIMIT,
   TENDERLY_ACCESS_TOKEN,
@@ -23,6 +32,7 @@ import {
   TENDERLY_ENCODE_URL,
   TENDERLY_SIM_URL,
 } from '../constants';
+import { GOVERNOR_OZ_ABI } from '../constants/abi';
 import {
   generateProposalId,
   getGovernor,
@@ -32,17 +42,7 @@ import {
   hashOperationBatchOz,
   hashOperationOz,
 } from '../contracts/governor';
-import type { Address } from 'viem';
-import {
-  encodeAbiParameters,
-  encodeFunctionData,
-  getAddress,
-  keccak256,
-  toBytes,
-  toHex,
-  zeroHash,
-} from 'viem';
-import { GOVERNOR_ABI } from '../abis/GovernorBravo';
+import { publicClient } from './viem';
 
 const fetchUrl = mftch;
 
