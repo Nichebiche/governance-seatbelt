@@ -50,7 +50,7 @@ async function main() {
 
     const proposalData: ProposalData = {
       governor,
-      timelock: getTimelock(governorType, config.governorAddress),
+      timelock: await getTimelock(governorType, config.governorAddress),
       publicClient,
     };
 
@@ -170,7 +170,7 @@ async function main() {
       // Generate the proposal data and dependencies needed by checks
       const proposalData: ProposalData = {
         governor,
-        timelock: getTimelock(governorType, governor.address),
+        timelock: await getTimelock(governorType, governor.address),
         publicClient,
       };
 
