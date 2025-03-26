@@ -14,6 +14,7 @@ import { publicClient } from '../clients/client';
 import { erc20 as getErc20Token } from './erc20';
 import { getBravoSlots, governorBravo } from './governor-bravo';
 import { getOzSlots, governorOz } from './governor-oz';
+import { timelockAbi } from '../abis/timelock';
 
 // --- Exported methods ---
 export async function inferGovernorType(address: Address): Promise<GovernorType> {
@@ -95,13 +96,16 @@ export async function getProposal(
   };
 }
 
-export function getTimelock(governorType: GovernorType, address: Address) {
+export async function getTimelock(governorType: GovernorType, address: Address) {
   const governor = getGovernor(governorType, address);
   if (!governor) throw new Error('Governor not found');
+  const timelockAddress = await governor.read.timelock();
 
-  return governorType === 'bravo'
-    ? getContract({ address, abi: GOVERNOR_ABI, client: publicClient })
-    : getContract({ address, abi: GOVERNOR_OZ_ABI, client: publicClient });
+  return getContract({
+    address: timelockAddress,
+    abi: timelockAbi,
+    client: publicClient,
+  });
 }
 
 export async function getVotingToken(
