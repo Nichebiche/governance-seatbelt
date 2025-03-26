@@ -93,8 +93,7 @@ export async function simulateNew(config: SimulationConfigNew): Promise<Simulati
   const blockNumberToUse = (await getLatestBlock(chainId)) - 3; // subtracting a few blocks to ensure tenderly has the block
   const latestBlock = await publicClient.getBlock({ blockNumber: BigInt(blockNumberToUse) });
   const governor = getGovernor(governorType, governorAddress);
-  const timelock = getTimelock(governorType, governorAddress);
-
+  const timelock = await getTimelock(governorType, governorAddress);
   const proposalId = await generateProposalId(governorType, governorAddress, {
     targets,
     values,
@@ -335,7 +334,7 @@ async function simulateProposed(config: SimulationConfigProposed): Promise<Simul
   const latestBlock = await publicClient.getBlock({ blockNumber: BigInt(blockNumberToUse) });
   const blockRange = [0n, latestBlock.number];
   const governor = getGovernor(governorType, governorAddress);
-  const timelock = getTimelock(governorType, governorAddress);
+  const timelock = await getTimelock(governorType, governorAddress);
   const proposal = await getProposal(governorType, governorAddress, proposalId);
   const abi = governorType === 'bravo' ? GOVERNOR_ABI : GOVERNOR_OZ_ABI;
 
@@ -576,7 +575,7 @@ async function simulateExecuted(config: SimulationConfigExecuted): Promise<Simul
   const latestBlock = await publicClient.getBlockNumber();
   const blockRange = [0n, latestBlock];
   const governor = getGovernor(governorType, governorAddress);
-  const timelock = getTimelock(governorType, governorAddress);
+  const timelock = await getTimelock(governorType, governorAddress);
 
   const [createProposalEvents, proposalExecutedEvents] = await Promise.all([
     publicClient.getContractEvents({
