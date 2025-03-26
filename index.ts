@@ -56,6 +56,40 @@ async function main() {
 
     const { sim, proposal, latestBlock } = await simulate(config);
     simOutputs.push({ sim, proposal, latestBlock, config, deps: proposalData });
+
+    // Run checks and generate reports for the simulation
+    console.log('Running checks...');
+    const checkResults: AllCheckResults = Object.fromEntries(
+      await Promise.all(
+        Object.keys(ALL_CHECKS).map(async (checkId) => [
+          checkId,
+          {
+            name: ALL_CHECKS[checkId].name,
+            result: await ALL_CHECKS[checkId].checkProposal(proposal, sim, proposalData),
+          },
+        ]),
+      ),
+    );
+
+    // Generate reports
+    const [startBlock, endBlock] = await Promise.all([
+      proposal.startBlock <= latestBlock.number
+        ? publicClient.getBlock({ blockNumber: BigInt(proposal.startBlock) })
+        : null,
+      proposal.endBlock <= latestBlock.number
+        ? publicClient.getBlock({ blockNumber: BigInt(proposal.endBlock) })
+        : null,
+    ]);
+
+    // Save reports and write frontend data
+    const dir = `./reports/${config.daoName}/${config.governorAddress}`;
+    await generateAndSaveReports(
+      governorType,
+      { start: startBlock, end: endBlock, current: latestBlock },
+      proposal,
+      checkResults,
+      dir,
+    );
   } else {
     // If no SIM_NAME is provided, we get proposals to simulate from the chain
     if (!GOVERNOR_ADDRESS) throw new Error('Must provide a GOVERNOR_ADDRESS');
@@ -203,10 +237,10 @@ async function main() {
 
         // Cache the simulation results with check results included
         cacheProposal(
-          DAO_NAME,
-          GOVERNOR_ADDRESS,
-          simProposal.id.toString(),
-          simProposal.state,
+          config.daoName,
+          config.governorAddress,
+          proposal.id.toString(),
+          '1', // State 1 is "Active" for both Bravo and OZ governors
           simulationData,
         );
 
