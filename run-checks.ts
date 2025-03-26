@@ -5,7 +5,7 @@
 import { getAddress } from 'viem';
 import ALL_CHECKS from './checks';
 import { generateAndSaveReports } from './presentation/report';
-import type { AllCheckResults, SimulationConfig } from './types';
+import type { AllCheckResults, ProposalData, SimulationConfig } from './types';
 import { simulate } from './utils/clients/tenderly';
 import { publicClient } from './utils/clients/viem';
 import { DAO_NAME, GOVERNOR_ADDRESS } from './utils/constants';
@@ -52,10 +52,10 @@ async function main() {
   };
 
   // Generate the proposal data and dependencies needed by checks
-  const proposalData = {
+  const proposalData: ProposalData = {
     governor,
+    timelock: await getTimelock(governorType, governor.address),
     publicClient,
-    timelock: getTimelock(governorType, governor.address),
   };
 
   // Run simulation
