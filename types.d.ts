@@ -97,7 +97,7 @@ export type CheckResult = {
 
 export type ProposalData = {
   governor: ReturnType<typeof getGovernor>;
-  timelock: ReturnType<typeof getTimelock>;
+  timelock: Awaited<ReturnType<typeof getTimelock>>;
   publicClient: PublicClient;
 };
 
