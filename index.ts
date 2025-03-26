@@ -57,8 +57,8 @@ async function main() {
     const { sim, proposal, latestBlock } = await simulate(config);
     simOutputs.push({ sim, proposal, latestBlock, config, deps: proposalData });
 
-    // Run checks and generate reports for the simulation
-    console.log('Running checks...');
+    // Run checks for the simulation
+    console.log(`Running checks for ${SIM_NAME} simulation...`);
     const checkResults: AllCheckResults = Object.fromEntries(
       await Promise.all(
         Object.keys(ALL_CHECKS).map(async (checkId) => [
@@ -71,17 +71,16 @@ async function main() {
       ),
     );
 
-    // Generate reports
     const [startBlock, endBlock] = await Promise.all([
       proposal.startBlock <= latestBlock.number
-        ? publicClient.getBlock({ blockNumber: BigInt(proposal.startBlock) })
+        ? publicClient.getBlock({ blockNumber: proposal.startBlock })
         : null,
       proposal.endBlock <= latestBlock.number
-        ? publicClient.getBlock({ blockNumber: BigInt(proposal.endBlock) })
+        ? publicClient.getBlock({ blockNumber: proposal.endBlock })
         : null,
     ]);
 
-    // Save reports and write frontend data
+    // Generate reports
     const dir = `./reports/${config.daoName}/${config.governorAddress}`;
     await generateAndSaveReports(
       governorType,
