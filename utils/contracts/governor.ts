@@ -10,11 +10,11 @@ import {
 import type { GovernorType, ProposalEvent, ProposalStruct } from '../../types';
 import { GOVERNOR_ABI } from '../abis/GovernorBravo';
 import { GOVERNOR_OZ_ABI } from '../abis/GovernorOZ';
+import { timelockAbi } from '../abis/Timelock';
 import { publicClient } from '../clients/client';
 import { erc20 as getErc20Token } from './erc20';
 import { getBravoSlots, governorBravo } from './governor-bravo';
 import { getOzSlots, governorOz } from './governor-oz';
-import { timelockAbi } from '../abis/timelock';
 
 // --- Exported methods ---
 export async function inferGovernorType(address: Address): Promise<GovernorType> {
