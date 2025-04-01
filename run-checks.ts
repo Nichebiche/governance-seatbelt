@@ -6,8 +6,8 @@ import { getAddress } from 'viem';
 import ALL_CHECKS from './checks';
 import { generateAndSaveReports } from './presentation/report';
 import type { AllCheckResults, ProposalData, SimulationConfig } from './types';
-import { simulate } from './utils/clients/tenderly';
 import { publicClient } from './utils/clients/client';
+import { simulate } from './utils/clients/tenderly';
 import { DAO_NAME, GOVERNOR_ADDRESS } from './utils/constants';
 import {
   formatProposalId,
