@@ -42,7 +42,7 @@ import {
   hashOperationBatchOz,
   hashOperationOz,
 } from '../contracts/governor';
-import { publicClient } from './viem';
+import { publicClient } from './client';
 
 const fetchUrl = mftch;
 
