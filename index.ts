@@ -72,10 +72,10 @@ async function main() {
     );
 
     const [startBlock, endBlock] = await Promise.all([
-      proposal.startBlock <= latestBlock.number
+      proposal.startBlock <= (latestBlock.number ?? 0n)
         ? publicClient.getBlock({ blockNumber: proposal.startBlock })
         : null,
-      proposal.endBlock <= latestBlock.number
+      proposal.endBlock <= (latestBlock.number ?? 0n)
         ? publicClient.getBlock({ blockNumber: proposal.endBlock })
         : null,
     ]);
@@ -94,6 +94,7 @@ async function main() {
     if (!GOVERNOR_ADDRESS) throw new Error('Must provide a GOVERNOR_ADDRESS');
     if (!DAO_NAME) throw new Error('Must provide a DAO_NAME');
     const latestBlock = await publicClient.getBlock();
+    if (!latestBlock.number) throw new Error('Failed to get latest block number');
 
     // Fetch all proposal IDs
     governorType = await inferGovernorType(GOVERNOR_ADDRESS);
@@ -212,11 +213,11 @@ async function main() {
 
         // Generate reports immediately
         const [startBlock, endBlock] = await Promise.all([
-          proposal.startBlock <= latestBlock.number
-            ? publicClient.getBlock({ blockNumber: BigInt(proposal.startBlock) })
+          proposal.startBlock <= (latestBlock.number ?? 0n)
+            ? publicClient.getBlock({ blockNumber: proposal.startBlock })
             : null,
-          proposal.endBlock <= latestBlock.number
-            ? publicClient.getBlock({ blockNumber: BigInt(proposal.endBlock) })
+          proposal.endBlock <= (latestBlock.number ?? 0n)
+            ? publicClient.getBlock({ blockNumber: proposal.endBlock })
             : null,
         ]);
 

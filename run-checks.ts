@@ -80,10 +80,10 @@ async function main() {
   // Generate markdown report
   console.log('Generating report...');
   const [startBlock, endBlock] = await Promise.all([
-    proposal.startBlock <= latestBlock.number
+    proposal.startBlock <= (latestBlock.number ?? 0n)
       ? publicClient.getBlock({ blockNumber: proposal.startBlock })
       : null,
-    proposal.endBlock <= latestBlock.number
+    proposal.endBlock <= (latestBlock.number ?? 0n)
       ? publicClient.getBlock({ blockNumber: proposal.endBlock })
       : null,
   ]);

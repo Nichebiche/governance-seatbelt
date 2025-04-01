@@ -572,8 +572,9 @@ async function simulateExecuted(config: SimulationConfigExecuted): Promise<Simul
   const { governorAddress, governorType, proposalId } = config;
 
   // --- Get details about the proposal we're analyzing ---
-  const latestBlock = await publicClient.getBlockNumber();
-  const blockRange = [0n, latestBlock];
+  const latestBlockNumber = await publicClient.getBlockNumber();
+  const latestBlock = await publicClient.getBlock({ blockNumber: BigInt(latestBlockNumber) });
+  const blockRange = [0n, latestBlock.number];
   const governor = getGovernor(governorType, governorAddress);
   const timelock = await getTimelock(governorType, governorAddress);
 
@@ -652,6 +653,7 @@ async function simulateExecuted(config: SimulationConfigExecuted): Promise<Simul
     timelock,
     publicClient,
   };
+
   return { sim, proposal: formattedProposal, latestBlock, deps };
 }
 

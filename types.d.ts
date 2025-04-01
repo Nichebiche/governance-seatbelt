@@ -1,4 +1,4 @@
-import type { Address } from 'viem';
+import type { Address, Block } from 'viem';
 import type { getGovernor, getTimelock } from './utils/contracts/governor';
 
 // --- Simulation configurations ---
