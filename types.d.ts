@@ -36,11 +36,13 @@ export type SimulationConfig =
   | SimulationConfigProposed
   | SimulationConfigNew;
 
+export type SimulationBlock = Pick<Block, 'number' | 'timestamp'>;
+
 export interface SimulationResult {
   sim: TenderlySimulation;
   proposal: ProposalEvent;
   deps: ProposalData;
-  latestBlock: Block;
+  latestBlock: SimulationBlock;
 }
 
 export interface SimulationData extends SimulationResult {

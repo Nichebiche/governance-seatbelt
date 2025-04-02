@@ -13,11 +13,11 @@ import remarkToc from 'remark-toc';
 import { unified } from 'unified';
 import { visit } from 'unist-util-visit';
 import type { Visitor } from 'unist-util-visit';
-import type { Block } from 'viem';
 import type {
   AllCheckResults,
   GovernorType,
   ProposalEvent,
+  SimulationBlock,
   SimulationCalldata,
   SimulationCheck,
   SimulationEvent,
@@ -119,7 +119,7 @@ function formatTime(blockTimestamp: bigint): string {
  * @param current the current block
  * @param block the future block number
  */
-function estimateTime(current: Block, block: bigint): bigint {
+function estimateTime(current: SimulationBlock, block: bigint): bigint {
   if (!current.number) throw new Error('Current block number is null');
   if (block < current.number) throw new Error('end block is less than current');
   return (block - current.number) * BigInt(13) + current.timestamp;
@@ -130,7 +130,7 @@ function estimateTime(current: Block, block: bigint): bigint {
  */
 function generateStructuredReport(
   governorType: GovernorType,
-  blocks: { current: Block; start: Block | null; end: Block | null },
+  blocks: { current: SimulationBlock; start: SimulationBlock | null; end: SimulationBlock | null },
   proposal: ProposalEvent,
   checks: AllCheckResults,
 ): StructuredSimulationReport {
@@ -295,7 +295,7 @@ function generateStructuredReport(
  */
 export function writeFrontendData(
   governorType: GovernorType,
-  blocks: { current: Block; start: Block | null; end: Block | null },
+  blocks: { current: SimulationBlock; start: SimulationBlock | null; end: SimulationBlock | null },
   proposal: ProposalEvent,
   checks: AllCheckResults,
   markdownReport: string,
@@ -361,7 +361,7 @@ export function writeFrontendData(
  */
 export async function generateAndSaveReports(
   governorType: GovernorType,
-  blocks: { current: Block; start: Block | null; end: Block | null },
+  blocks: { current: SimulationBlock; start: SimulationBlock | null; end: SimulationBlock | null },
   proposal: ProposalEvent,
   checks: AllCheckResults,
   dir: string,
@@ -417,7 +417,7 @@ export async function generateAndSaveReports(
  */
 async function toMarkdownProposalReport(
   governorType: GovernorType,
-  blocks: { current: Block; start: Block | null; end: Block | null },
+  blocks: { current: SimulationBlock; start: SimulationBlock | null; end: SimulationBlock | null },
   proposal: ProposalEvent,
   checks: AllCheckResults,
 ): Promise<string> {

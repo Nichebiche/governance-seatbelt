@@ -236,7 +236,7 @@ async function main() {
         simOutputs.push(simulationData);
 
         // Cache the simulation results with check results included
-        cacheProposal(
+        await cacheProposal(
           config.daoName,
           config.governorAddress,
           proposal.id.toString(),
