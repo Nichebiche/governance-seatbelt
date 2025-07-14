@@ -36,7 +36,7 @@
     "@octokit/action": "^3.15.2",
     "ethers": "^5.4.6",
     "md-to-pdf": "^5.1.0",
-    "micro-ftch": "^0.4.3",
+    "micro-ftch": "^0.5.0",
     "npm": "^10.3.0",
     "rehype-sanitize": "^5.0.1",
     "rehype-slug": "^5.0.1",
